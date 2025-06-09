@@ -1,2 +1,39 @@
-# argoCD-gitOps-casandra
-Deploy a Python FastAPI app with a Cassandra database using Kubernetes and Argo CD. Learn GitOps, containerization, and declarative infrastructure in a hands-on, cloud-native setup ideal for DevOps and platform engineering skills.
+## argoCD-gitOps-casandra
+Deploy a Python FastAPI app with a Cassandra database using Kubernetes and Argo CD. Learn GitOps, 
+containerization, and declarative infrastructure in a hands-on, cloud-native setup ideal for DevOps 
+and platform engineering skills.
+
+## 📖 What is Argo CD?
+Argo CD is a declarative, GitOps continuous delivery tool for Kubernetes. It:
+Monitors Git repositories for Kubernetes manifests.
+Synchronizes Kubernetes clusters with the Git state.
+Offers a web UI and CLI for application lifecycle management.
+
+## 🧰 Prerequisites
+Install the following (all open-source):
+- Minikube (local Kubernetes cluster)
+- kubectl
+- GitHub account
+- Argo CD CLI
+- Docker
+
+## 🏗️ Project Structure
+argoCD-gitOps-casandra/
+├── app/
+│   ├── main.py
+│   └── requirements.txt
+├── docker/
+│   ├── Dockerfile
+├── k8s/
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── cassandra.yaml
+├── manifests/
+│   ├── app.yaml  # Argo CD application manifest
+├── README.md
+
+
+## Create venv
+- python3 -m venv venv
+- source myenv/bin/activate
+- deactivate

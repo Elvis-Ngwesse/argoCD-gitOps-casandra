@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autoshopper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: autoshopper
+  template:
+    metadata:
+      labels:
+        app: autoshopper
+    spec:
+      containers:
+        - name: flask-app
+          image: your-dockerhub-username/autoshopper:latest
+          ports:
+            - containerPort: 5000
