@@ -1,12 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: autoshopper
+  name: argocd-app
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/YOUR_USERNAME/autoshopper
+    repoURL: https://github.com/Elvis-Ngwesse/argoCD-gitOps-casandra
     targetRevision: HEAD
     path: k8s
   destination:

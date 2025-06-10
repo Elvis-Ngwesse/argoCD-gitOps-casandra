@@ -28,49 +28,37 @@
 
 ## 📖 GitOps Deployment
 - Build and Push Docker Image
+    docker build -t dockerelvis/argocd-app:latest -f docker/Dockerfile .
+    docker login
+    docker push dockerelvis/argocd-app:latest
 
-docker build -t your-dockerhub-username/autoshopper:latest .
-docker push your-dockerhub-username/autoshopper:latest
+## 👨‍🏫  Start Minikube
+- Go to README.md file
 
-Step 2: Start Minikube
+## ⚙️  Install Argo CD
+    kubectl create namespace argocd
+    kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-minikube start
+## 🌐 Port-forward Argo CD UI
+- kubectl port-forward svc/argocd-server -n argocd 8080:443
+- Access: https://localhost:8080
+# 🔑 Default Login
+    Username: admin
+    Password: run: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 
-Step 3: Install Argo CD
+## 🔗 Connect Git Repository
+- argocd login localhost:8080
+- add repo
+  argocd repo add git@github.com:Elvis-Ngwesse/argoCD-gitOps-casandra.git \
+  --ssh-private-key-path ~/.ssh/id_rsa
+- create app
+  argocd app create python-cassandra-app \
+  --repo git@github.com:Elvis-Ngwesse/argoCD-gitOps-casandra.git \
+  --path ./ \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace default
 
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-Step 4: Port-forward Argo CD UI
-
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-
-Access: https://localhost:8080
-
-Default login:
-
-Username: admin
-
-Password: run:
-
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-
-Step 5: Connect Git Repo
-
-Login to Argo CD UI.
-
-Create a new app:
-
-Repo URL: your GitHub repo
-
-Path: k8s
-
-Cluster: in-cluster
-
-Namespace: default
-
-Step 6: Deploy with Argo CD
-
+## 🚀 Deploy with Argo CD
 Argo will auto-sync your manifests and deploy the app.
 
 Step 7: Verify

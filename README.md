@@ -37,3 +37,27 @@ argoCD-gitOps-casandra/
 - python3 -m venv venv
 - source myenv/bin/activate
 - deactivate
+
+## install argocd
+- sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-darwin-arm64
+- sudo chmod +x /usr/local/bin/argocd
+- argocd version
+
+## 👨‍🏫  Start Minikube
+- minikube start --nodes 3
+- kubectl get nodes
+- minikube ssh minikube ssh --node=minikube-m02 minikube ssh --node=minikube-m03
+
+# Taint the master node so it won't run workloads:
+- kubectl taint nodes minikube node-role.kubernetes.io/master=:NoSchedule
+
+# 🚀 (Optional) Enable Dashboard and Ingress
+- minikube addons enable dashboard
+- minikube addons enable ingress
+
+# 📊 Open Minikube Dashboard
+- minikube dashboard
+
+# 🗑️ Delete Minikube
+- minikube stop minikube delete --all
+
