@@ -17,3 +17,18 @@ spec:
           image: dockerelvis/argocd-app:latest
           ports:
             - containerPort: 5000
+          env:
+            - name: CASSANDRA_HOST
+              value: "cassandra"   # set this to your Cassandra service hostname
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20
