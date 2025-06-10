@@ -33,8 +33,6 @@ spec:
           ports:
             - containerPort: 9042
           env:
-            - name: CASSANDRA_SEEDS
-              value: "cassandra-0.cassandra.default.svc.cluster.local"
             - name: CASSANDRA_CLUSTER_NAME
               value: "MyCassandraCluster"
             - name: CASSANDRA_NUM_TOKENS
