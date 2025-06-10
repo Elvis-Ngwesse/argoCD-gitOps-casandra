@@ -45,3 +45,10 @@ spec:
               value: "RAC1"
             - name: CASSANDRA_ENDPOINT_SNITCH
               value: "GossipingPropertyFileSnitch"
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1"
