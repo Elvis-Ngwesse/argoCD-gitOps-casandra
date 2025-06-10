@@ -1,30 +1,24 @@
 
 ## ⚙️ Test Locally Without Kubernetes
-- Install Cassandra Locally (Docker)
-    - docker run --name cassandra -d -p 9042:9042 cassandra:4.0
-- Set Environment Variable in main.py
-- Make sure Cassandra connects to localhost:
-- cluster = Cluster(['localhost'])
-- Create Virtual Environment and Install Dependencies
-     - python3 -m venv venv 
-     - source venv/bin/activate 
-     - pip install -r app/requirements.txt
-- 🧪 Test It (Locally)
-     - python app/main.py
+- Install Mongodb Locally (Docker)
+    - docker run -d --name mongodb -p 27017:27017 mongo:latest
 - 🐳 Test It (In Docker)
      - docker build -t customer-generator -f docker/Dockerfile .
-     - docker run --rm -p 5002:5000 \
-       --link cassandra \
-       -e CASSANDRA_HOST=cassandra \
+     - docker run -d --name customer-generator \
+       --link mongodb:mongo \
+       -p 5002:5000 \
+       -e MONGO_URI="mongodb://mongo:27017/" \
        customer-generator
-
 - Visit http://localhost:5002 to confirm it’s running.
 
-## ✅ Query Cassandra
-- docker exec -it cassandra cqlsh
-- USE shop;
-- SELECT id, username, basket FROM customers LIMIT 5;
-- DESCRIBE TABLE customers;
+## ✅ Query Mongo
+- docker exec -it mongodb mongosh
+- show dbs;
+- use customerdb;
+- show collections;
+- db.customers.find().pretty();
+- db.customers.find({status: "active"}).pretty();
+- db.customers.find().limit(5).pretty();
 
 ## 📖 GitOps Deployment
 - Build and Push Docker Image

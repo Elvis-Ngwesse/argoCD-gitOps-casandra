@@ -1,6 +1,6 @@
 from flask import Flask
 from faker import Faker
-from cassandra.cluster import Cluster
+from pymongo import MongoClient
 import threading
 import time
 import uuid
@@ -9,28 +9,13 @@ import os
 app = Flask(__name__)
 fake = Faker()
 
-# Get Cassandra host from environment variable or default to 'cassandra'
-CASSANDRA_HOST = os.getenv('CASSANDRA_HOST', 'cassandra')
+# MongoDB connection URI (use env var or default localhost)
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo-service:27017")
 
-# Connect to Cassandra
-cluster = Cluster([CASSANDRA_HOST])
-session = cluster.connect()
-
-# Create keyspace and table
-session.execute("""
-    CREATE KEYSPACE IF NOT EXISTS shop WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'}
-""")
-session.set_keyspace('shop')
-session.execute("""
-    CREATE TABLE IF NOT EXISTS customers (
-        id UUID PRIMARY KEY,
-        username TEXT,
-        address TEXT,
-        status TEXT,
-        country TEXT,
-        basket LIST<TEXT>
-    )
-""")
+# Connect to MongoDB
+mongo_client = MongoClient(MONGO_URI)
+db = mongo_client['customerdb']      # Database name
+customers_collection = db['customers']  # Collection name
 
 # Predefined food items
 food_items = [
@@ -46,17 +31,20 @@ food_items = [
     "quinoa", "barley", "coconut", "almond", "walnut", "cashew", "hazelnut", "chili", "soup"
 ]
 
-
 def generate_customer():
     while True:
+        customer_id = str(uuid.uuid4())
         basket = [fake.random_element(elements=food_items) for _ in range(30)]
-        session.execute("""
-            INSERT INTO customers (id, username, address, status, country, basket)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (uuid.uuid4(), fake.user_name(), fake.address(), fake.random_element(['active', 'inactive']),
-              fake.country(), basket))
+        customer_data = {
+            "_id": customer_id,
+            "username": fake.user_name(),
+            "address": fake.address(),
+            "status": fake.random_element(['active', 'inactive']),
+            "country": fake.country(),
+            "basket": basket,  # store as list directly
+        }
+        customers_collection.insert_one(customer_data)
         time.sleep(5)
-
 
 @app.route('/')
 def index():
@@ -75,11 +63,9 @@ def index():
     <p>Generating fake customers every 5 seconds</p>
     '''
 
-
-# Start background thread
+# Start background thread to generate customers
 threading.Thread(target=generate_customer, daemon=True).start()
 
-# ASCII startup banner
 if __name__ == '__main__':
     print(r"""
   ____           _                   _                   _____                         
