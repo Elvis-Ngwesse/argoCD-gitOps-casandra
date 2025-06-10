@@ -32,4 +32,4 @@ spec:
   ports:
     - port: 5000
       targetPort: 5000
-      nodePort: 30080  # or other free port on Minikube node
+      nodePort: 30090  # or other free port on Minikube node
