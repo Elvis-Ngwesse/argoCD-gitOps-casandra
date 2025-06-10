@@ -7,6 +7,7 @@ spec:
     app: argocd-app
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 5000
+      port: 80         # Service port
+      targetPort: 5000 # Container port
+      nodePort: 30080  # Optional: specify NodePort value (must be between 30000-32767)
   type: NodePort
