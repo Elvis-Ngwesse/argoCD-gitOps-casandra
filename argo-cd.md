@@ -42,19 +42,26 @@
 
 ## 🔗 Connect Git Repository
 - argocd login localhost:8080
+
 - add repo
   argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
   --ssh-private-key-path ~/.ssh/id_rsa
-- create app
-  argocd app create python-mongo-app \
+
+- create test env app
+  argocd app create python-mongodb-test \
   --repo git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
-  --path k8s \
+  --path k8s/test \
   --dest-server https://kubernetes.default.svc \
-  --dest-namespace default \
-  --sync-policy automated
+  --dest-namespace test \
+  --sync-policy automated \
+  --self-heal \
+  --auto-prune \
+  --sync-option CreateNamespace=true
+
+
 - delete app
-  argocd app delete python-cassandra-app --cascade
-- 
+  argocd app delete python-mongo-app --cascade
+
 ## 🚀 Deploy with Argo CD
 - Argo will auto-sync your manifests and deploy the app.
 # 🛡️ Verify
