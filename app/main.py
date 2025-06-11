@@ -96,7 +96,7 @@ def index():
             <div class="symbols">
                 &#127822; &#127823; &#127824; &#127825; &#127826; &#127827;
             </div>
-            <p>Generating fake customers every 5 seconds...</p>
+            <p>Generating customers every 05 seconds...</p>
         </div>
     </body>
     </html>
