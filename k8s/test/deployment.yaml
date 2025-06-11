@@ -300,9 +300,10 @@ spec:
             - |
               pip install -r unit-tests/requirements.txt boto3 pytest-html && \
               export PYTHONPATH=/app && \
-              export TIMESTAMP=$(date +%Y%m%d%H%M%S) && \
+              TIMESTAMP=$(date +%Y%m%d%H%M%S) && \
               pytest unit-tests/test_app.py --junitxml=results_$TIMESTAMP.xml --html=results_$TIMESTAMP.html && \
-              python3 /app/unit-tests/upload_results.py
+              python3 /app/unit-tests/upload_results.py $TIMESTAMP
+
           workingDir: /app
           volumeMounts:
             - name: app-code
