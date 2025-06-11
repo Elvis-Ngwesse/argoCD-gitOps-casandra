@@ -68,27 +68,26 @@
 # ✅ Delete app
     argocd app delete python-mongo-app --cascade
 
-## 🚀 Deploy with Argo CD
-- Argo will auto-sync your manifests and deploy the app.
+# ✅ 🚀 Deploy with Argo CD
+    Argo will auto-sync your manifests and deploy the app.
 
-# 🛡️ Verify
-- kubectl get pods
-- kubectl get svc argocd-server -n argocd
+# ✅ 🛡️ Verify
+    kubectl get pods
+    kubectl get svc argocd-server -n argocd
 
-## 🔑 Use minikube service argocd-app to access the app.
-- 🔄 Make a Code Change
-- Push to GitHub
-- Argo CD syncs automatically and redeploys
-
-
-Helm charts version
-
-Metrics + Grafana for visibility
-
-Ingress setup with TLS
+# ✅ Use minikube service argocd-app to access the app.
+    🔄 Make a Code Change
+    Push to GitHub
+    Argo CD syncs automatically and redeploys
 
 # ✅ Get app history
     argocd app history python-mongodb-test
 
 # ✅ Roll back deployment
     argocd app rollback python-mongodb-test 0
+
+
+Metrics + Grafana for visibility
+Ingress setup with TLS
+
+
