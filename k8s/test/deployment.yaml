@@ -143,7 +143,7 @@ metadata:
   name: argocd-manager
   namespace: test
   annotations:
-    argocd.argoproj.io/hook-weight: "0"
+    argocd.argoproj.io/hook-weight: "-10"
 ---
 # Role with permissions to manage StatefulSets
 apiVersion: rbac.authorization.k8s.io/v1
