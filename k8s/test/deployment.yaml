@@ -55,7 +55,7 @@ kind: PersistentVolume
 metadata:
   name: mongo-pv
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   capacity:
     storage: 1Gi
@@ -72,7 +72,7 @@ metadata:
   name: mongo-pvc
   namespace: test
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -91,7 +91,7 @@ metadata:
   name: mongo-service
   namespace: test
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   clusterIP: None
   selector:
@@ -107,7 +107,7 @@ metadata:
   name: mongo
   namespace: test
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   serviceName: "mongo-service"
   replicas: 2
@@ -152,7 +152,7 @@ metadata:
   name: delete-mongo-statefulset
   namespace: test
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   backoffLimit: 1
   template:
@@ -178,7 +178,7 @@ metadata:
   name: argocd-app
   namespace: test
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   replicas: 2
   selector:
@@ -216,7 +216,7 @@ metadata:
   name: flask-service
   namespace: test
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   type: NodePort
   selector:
