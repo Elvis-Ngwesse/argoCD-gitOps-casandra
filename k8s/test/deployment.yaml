@@ -1,0 +1,184 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-app
+  namespace: test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: argocd-app
+  template:
+    metadata:
+      labels:
+        app: argocd-app
+    spec:
+      containers:
+        - name: argocd-app
+          image: dockerelvis/argocd-app:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: MONGO_URI
+              value: "mongodb://mongo-service:27017"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service
+  namespace: test
+spec:
+  type: NodePort
+  selector:
+    app: argocd-app
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30090  # Change if this port is already in use
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service
+  namespace: test
+spec:
+  clusterIP: None  # Headless service for StatefulSet
+  selector:
+    app: mongo
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: test
+spec:
+  serviceName: "mongo-service"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: mongo
+              topologyKey: "kubernetes.io/hostname"  # Spread across nodes
+      containers:
+        - name: mongo
+          image: mongo:latest
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-storage
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: delete-mongo-statefulset
+  namespace: test  # Ensure this matches your Argo CD app namespace
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: argocd-manager  # Make sure this has RBAC to delete StatefulSets
+      restartPolicy: Never
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - kubectl delete statefulset mongo --namespace=test --cascade=orphan
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-manager
+  namespace: test
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: statefulset-manager
+  namespace: test
+rules:
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: statefulset-manager-binding
+  namespace: test
+subjects:
+  - kind: ServiceAccount
+    name: argocd-manager
+    namespace: test
+roleRef:
+  kind: Role
+  name: statefulset-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mongo-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/mongo  # ⚠️ For Minikube/local only
+  persistentVolumeReclaimPolicy: Retain  # Optional but recommended for dev/test
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+  namespace: test
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: mongo-pv  # Explicitly bind to the above PV
+
