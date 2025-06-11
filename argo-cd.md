@@ -66,6 +66,9 @@
 - Push to GitHub
 - Argo CD syncs automatically and redeploys
 
+
+
+
 Helm charts version
 
 Metrics + Grafana for visibility
