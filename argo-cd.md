@@ -93,6 +93,8 @@ Ingress setup with TLS
 
 
 kubectl create secret generic minio-creds \
---from-literal=accesskey=YOUR_MINIO_ACCESS_KEY \
---from-literal=secretkey=YOUR_MINIO_SECRET_KEY
+--from-literal=accesskey=admin \
+--from-literal=secretkey=password123 \
+-n test
+
 
