@@ -165,7 +165,8 @@ spec:
           command:
             - /bin/sh
             - -c
-            - kubectl delete statefulset mongo --namespace=test --cascade=orphan
+            - |
+              kubectl delete statefulset mongo --namespace=test --cascade=orphan || true
 
 ---
 # ---------------------------------------------------
