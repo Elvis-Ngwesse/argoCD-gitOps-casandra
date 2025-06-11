@@ -91,10 +91,14 @@ Metrics + Grafana for visibility
 Ingress setup with TLS
 
 
+# Build the image with a tag
+docker build -t flask-minio-presigned .
 
-kubectl create secret generic minio-creds \
---from-literal=accesskey=admin \
---from-literal=secretkey=password123 \
--n test
+# Load the image into Minikube's Docker daemon
+minikube image load flask-minio-presigned
 
-
+## 📖 Docker push
+- Build and Push Docker Image
+  docker build -t dockerelvis/presigned-app:latest -f docker2/Dockerfile .
+  docker login
+  docker push dockerelvis/presigned-app:latest

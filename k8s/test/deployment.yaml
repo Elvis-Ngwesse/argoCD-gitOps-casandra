@@ -366,3 +366,60 @@ spec:
     - port: 5000
       targetPort: 5000
       nodePort: 30090
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-minio
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-minio
+  template:
+    metadata:
+      labels:
+        app: flask-minio
+    spec:
+      containers:
+        - name: flask-minio
+          image: dockerelvis/presigned-app:latest
+          ports:
+            - containerPort: 5002
+          env:
+            - name: MINIO_ENDPOINT
+              value: "http://minio-service:9000"
+            - name: MINIO_BUCKET
+              value: "test-reports"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds
+                  key: accesskey
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds
+                  key: secretkey
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-minio-service
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  selector:
+    app: flask-minio
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5002
+  type: NodePort
+
