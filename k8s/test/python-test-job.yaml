@@ -24,14 +24,54 @@ spec:
       containers:
         - name: pytest
           image: python:3.10
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds
+                  key: accesskey
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds
+                  key: secretkey
+            - name: MINIO_ENDPOINT
+              value: "http://minio-service:9000"  # Adjust as needed
+            - name: MINIO_BUCKET
+              value: "test-reports"
+
           command:
             - sh
             - -c
             - |
-              pip install -r unit-tests/requirements.txt && \
+              pip install -r unit-tests/requirements.txt boto3 pytest-html && \
               export PYTHONPATH=/app && \
-              pytest unit-tests/test_app.py
-          workingDir: /app
-          volumeMounts:
-            - name: app-code
-              mountPath: /app
+              timestamp=$(date +%Y%m%d%H%M%S) && \
+              pytest unit-tests/test_app.py --junitxml=results_$timestamp.xml --html=results_$timestamp.html && \
+              python3 -c "
+  import boto3, os
+  from botocore.exceptions import ClientError
+  
+  bucket = os.environ['MINIO_BUCKET']
+  endpoint = os.environ['MINIO_ENDPOINT']
+  access_key = os.environ['AWS_ACCESS_KEY_ID']
+  secret_key = os.environ['AWS_SECRET_ACCESS_KEY']
+  timestamp = os.popen('date +%Y%m%d%H%M%S').read().strip()
+  
+  s3 = boto3.client('s3', endpoint_url=endpoint, aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+
+# Create bucket if it doesn't exist
+try:
+  s3.head_bucket(Bucket=bucket)
+except ClientError:
+  s3.create_bucket(Bucket=bucket)
+
+# Upload artifacts
+  s3.upload_file(f'results_{timestamp}.xml', bucket, f'results/results_{timestamp}.xml')
+  s3.upload_file(f'results_{timestamp}.html', bucket, f'results/results_{timestamp}.html')
+  print('✅ Uploaded test artifacts to MinIO')
+  "
+workingDir: /app
+volumeMounts:
+  - name: app-code
+    mountPath: /app

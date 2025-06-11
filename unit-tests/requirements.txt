@@ -2,3 +2,5 @@ Flask
 pytest
 faker
 pymongo
+boto3
+pytest-html
