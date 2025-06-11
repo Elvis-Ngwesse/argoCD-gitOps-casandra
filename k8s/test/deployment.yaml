@@ -8,6 +8,82 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-creds
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+type: Opaque
+stringData:
+  accesskey: minioadmin
+  secretkey: minioadmin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+        - name: minio
+          image: minio/minio:latest
+          args:
+            - server
+            - /data
+            - --console-address
+            - ":9001"
+          env:
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds
+                  key: accesskey
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds
+                  key: secretkey
+          ports:
+            - containerPort: 9000
+            - containerPort: 9001
+          volumeMounts:
+            - name: minio-data
+              mountPath: /data
+      volumes:
+        - name: minio-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  selector:
+    app: minio
+  ports:
+    - name: api
+      port: 9000
+      targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
+---
 # ---------------------------------------------------
 # 2. ServiceAccount + RBAC
 # ---------------------------------------------------
@@ -167,6 +243,67 @@ spec:
             - -c
             - |
               kubectl delete statefulset mongo --namespace=test --cascade=orphan || true
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: python-test-job
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  template:
+    metadata: {}
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: app-code
+          emptyDir: {}
+
+      initContainers:
+        - name: git-clone
+          image: alpine/git
+          command:
+            - sh
+            - -c
+            - git clone https://github.com/Elvis-Ngwesse/argoCD-mongodb.git /app
+          volumeMounts:
+            - name: app-code
+              mountPath: /app
+
+      containers:
+        - name: pytest
+          image: python:3.10
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds
+                  key: accesskey
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds
+                  key: secretkey
+            - name: MINIO_ENDPOINT
+              value: "http://minio-service:9000"
+            - name: MINIO_BUCKET
+              value: "test-reports"
+          command:
+            - sh
+            - -c
+            - |
+              pip install -r unit-tests/requirements.txt boto3 pytest-html && \
+              export PYTHONPATH=/app && \
+              timestamp=$(date +%Y%m%d%H%M%S) && \
+              pytest unit-tests/test_app.py --junitxml=results_$timestamp.xml --html=results_$timestamp.html && \
+              python3 /app/unit-tests/upload_results.py
+          workingDir: /app
+          volumeMounts:
+            - name: app-code
+              mountPath: /app
+
 
 ---
 # ---------------------------------------------------
