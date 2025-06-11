@@ -290,20 +290,23 @@ spec:
               value: "http://minio-service:9000"
             - name: MINIO_BUCKET
               value: "test-reports"
+            - name: TIMESTAMP
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['timestamp']
           command:
             - sh
             - -c
             - |
               pip install -r unit-tests/requirements.txt boto3 pytest-html && \
               export PYTHONPATH=/app && \
-              timestamp=$(date +%Y%m%d%H%M%S) && \
-              pytest unit-tests/test_app.py --junitxml=results_$timestamp.xml --html=results_$timestamp.html && \
+              export TIMESTAMP=$(date +%Y%m%d%H%M%S) && \
+              pytest unit-tests/test_app.py --junitxml=results_$TIMESTAMP.xml --html=results_$TIMESTAMP.html && \
               python3 /app/unit-tests/upload_results.py
           workingDir: /app
           volumeMounts:
             - name: app-code
               mountPath: /app
-
 
 ---
 # ---------------------------------------------------

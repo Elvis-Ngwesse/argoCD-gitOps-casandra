@@ -1,15 +1,12 @@
 import boto3
 import os
 from botocore.exceptions import ClientError
-import subprocess
 
 bucket = os.environ['MINIO_BUCKET']
 endpoint = os.environ['MINIO_ENDPOINT']
 access_key = os.environ['AWS_ACCESS_KEY_ID']
 secret_key = os.environ['AWS_SECRET_ACCESS_KEY']
-
-# Get timestamp to match test result files
-timestamp = subprocess.getoutput('date +%Y%m%d%H%M%S')
+timestamp = os.environ['TIMESTAMP']  # ✅ Now consistent
 
 s3 = boto3.client(
     's3',
