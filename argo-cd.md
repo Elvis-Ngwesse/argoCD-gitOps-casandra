@@ -102,3 +102,10 @@ minikube image load flask-minio-presigned
   docker build -t dockerelvis/presigned-app:latest -f docker2/Dockerfile .
   docker login
   docker push dockerelvis/presigned-app:latest
+
+get the service endpoint and add /presigned-urls
+http://<minikube-ip>:<nodeport>/presigned-urls
+
+get a json which is key value and download resources
+
+
