@@ -28,7 +28,6 @@ food_items = [
     "quinoa", "barley", "coconut", "almond", "walnut", "cashew", "hazelnut", "chili", "soup"
 ]
 
-
 def generate_customer():
     while True:
         customer_id = str(uuid.uuid4())
@@ -44,7 +43,6 @@ def generate_customer():
         customers_collection.insert_one(customer_data)
         time.sleep(5)
 
-
 @app.route('/')
 def index():
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -56,6 +54,7 @@ def index():
     <html lang="en">
     <head>
         <meta charset="UTF-8" />
+        <meta http-equiv="refresh" content="5">
         <title>Customer Generator Status</title>
         <style>
             body {{
@@ -104,7 +103,7 @@ def index():
     '''
     return html
 
-
+# Start customer generation in a background thread
 threading.Thread(target=generate_customer, daemon=True).start()
 
 if __name__ == '__main__':
