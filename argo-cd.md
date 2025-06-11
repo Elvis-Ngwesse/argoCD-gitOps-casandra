@@ -57,18 +57,14 @@
 - 
 ## 🚀 Deploy with Argo CD
 - Argo will auto-sync your manifests and deploy the app.
-kubectl get pods
-kubectl get svc argocd-app
+# 🛡️ Verify
+- kubectl get pods
+- kubectl get svc argocd-app
 
-Use minikube service argocd-app to access the app.
-
-🔄 Make a Code Change
-
-Change something in main.py
-
-Push to GitHub
-
-Argo CD syncs automatically and redeploys
+## 🔑 Use minikube service argocd-app to access the app.
+- 🔄 Make a Code Change
+- Push to GitHub
+- Argo CD syncs automatically and redeploys
 
 Let me know if you'd like:
 
@@ -77,5 +73,3 @@ Helm charts version
 Metrics + Grafana for visibility
 
 Ingress setup with TLS
-
-This setup gives students full hands-on experience with GitOps, containers, microservices, and cloud-native tech—all locally and free.
