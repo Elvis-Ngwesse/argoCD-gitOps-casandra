@@ -103,58 +103,7 @@ spec:
         resources:
           requests:
             storage: 1Gi
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: delete-mongo-statefulset
-  namespace: test  # Ensure this matches your Argo CD app namespace
-  annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/hook-delete-policy: HookSucceeded
-spec:
-  backoffLimit: 1
-  template:
-    spec:
-      serviceAccountName: argocd-manager  # Make sure this has RBAC to delete StatefulSets
-      restartPolicy: Never
-      containers:
-        - name: kubectl
-          image: bitnami/kubectl:latest
-          command:
-            - /bin/sh
-            - -c
-            - kubectl delete statefulset mongo --namespace=test --cascade=orphan
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: argocd-manager
-  namespace: test
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: statefulset-manager
-  namespace: test
-rules:
-  - apiGroups: ["apps"]
-    resources: ["statefulsets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: statefulset-manager-binding
-  namespace: test
-subjects:
-  - kind: ServiceAccount
-    name: argocd-manager
-    namespace: test
-roleRef:
-  kind: Role
-  name: statefulset-manager
-  apiGroup: rbac.authorization.k8s.io
+
 ---
 apiVersion: v1
 kind: PersistentVolume
