@@ -64,6 +64,7 @@ spec:
   hostPath:
     path: /mnt/data/mongo
   persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -79,6 +80,7 @@ spec:
     requests:
       storage: 1Gi
   volumeName: mongo-pv
+  storageClassName: ""
 ---
 # ---------------------------------------------------
 # 4. Mongo Headless Service + StatefulSet
