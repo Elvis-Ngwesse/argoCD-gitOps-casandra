@@ -4,7 +4,121 @@ kind: Namespace
 metadata:
   name: test
 ---
-# Deployment: Flask App
+# ServiceAccount + RBAC for Argo CD Job
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-manager
+  namespace: test
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: statefulset-manager
+  namespace: test
+rules:
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: statefulset-manager-binding
+  namespace: test
+subjects:
+  - kind: ServiceAccount
+    name: argocd-manager
+    namespace: test
+roleRef:
+  kind: Role
+  name: statefulset-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+# Persistent Volume (for Minikube/local only)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mongo-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/mongo
+  persistentVolumeReclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+  namespace: test
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: mongo-pv
+---
+# MongoDB Headless Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service
+  namespace: test
+spec:
+  clusterIP: None
+  selector:
+    app: mongo
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+---
+# MongoDB StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: test
+spec:
+  serviceName: "mongo-service"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: mongo
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: mongo
+          image: mongo:latest
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-storage
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+---
+# Flask App Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -41,7 +155,7 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 20
 ---
-# Service: Flask
+# Flask App NodePort Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -56,63 +170,7 @@ spec:
       targetPort: 5000
       nodePort: 30090
 ---
-# Headless Service for Mongo StatefulSet
-apiVersion: v1
-kind: Service
-metadata:
-  name: mongo-service
-  namespace: test
-spec:
-  clusterIP: None
-  selector:
-    app: mongo
-  ports:
-    - protocol: TCP
-      port: 27017
-      targetPort: 27017
----
-# Mongo StatefulSet
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: mongo
-  namespace: test
-spec:
-  serviceName: mongo-service
-  replicas: 2
-  selector:
-    matchLabels:
-      app: mongo
-  template:
-    metadata:
-      labels:
-        app: mongo
-    spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  app: mongo
-              topologyKey: "kubernetes.io/hostname"
-      containers:
-        - name: mongo
-          image: mongo:latest
-          ports:
-            - containerPort: 27017
-          volumeMounts:
-            - name: mongo-storage
-              mountPath: /data/db
-  volumeClaimTemplates:
-    - metadata:
-        name: mongo-storage
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 1Gi
----
-# Job: Delete Mongo StatefulSet (PreSync Hook)
+# ArgoCD PreSync Hook Job (runs only after ServiceAccount exists)
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -121,7 +179,6 @@ metadata:
   annotations:
     argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
-    argocd.argoproj.io/hook-weight: "1"
 spec:
   backoffLimit: 1
   template:
@@ -135,66 +192,3 @@ spec:
             - /bin/sh
             - -c
             - kubectl delete statefulset mongo --namespace=test --cascade=orphan
----
-# ServiceAccount for the Job
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: argocd-manager
-  namespace: test
-  annotations:
-    argocd.argoproj.io/hook-weight: "-10"
----
-# Role with permissions to manage StatefulSets
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: statefulset-manager
-  namespace: test
-rules:
-  - apiGroups: ["apps"]
-    resources: ["statefulsets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
----
-# Bind Role to ServiceAccount
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: statefulset-manager-binding
-  namespace: test
-subjects:
-  - kind: ServiceAccount
-    name: argocd-manager
-    namespace: test
-roleRef:
-  kind: Role
-  name: statefulset-manager
-  apiGroup: rbac.authorization.k8s.io
----
-# Persistent Volume (hostPath for local/dev only)
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: mongo-pv
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: /mnt/data/mongo
-  persistentVolumeReclaimPolicy: Retain
----
-# Persistent Volume Claim (bound to above PV)
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mongo-pvc
-  namespace: test
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  volumeName: mongo-pv
