@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/Elvis-Ngwesse/argoCD-gitOps-casandra
+    repoURL: https://github.com/Elvis-Ngwesse/argoCD-mongodb
     targetRevision: HEAD
     path: k8s
   destination:

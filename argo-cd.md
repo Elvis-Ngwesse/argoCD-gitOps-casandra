@@ -1,5 +1,5 @@
 
-## ⚙️ Test Locally Without Kubernetes
+## ⚙️ Test using docker local host
 - Install Mongodb Locally (Docker)
     - docker run -d --name mongodb -p 27017:27017 mongo:latest
 - 🐳 Test It (In Docker)
@@ -11,7 +11,7 @@
        customer-generator
 - Visit http://localhost:5002 to confirm it’s running.
 
-## ✅ Query Mongo
+## ✅ Query Mongo localhost
 - docker exec -it mongodb mongosh
 - show dbs;
 - use customerdb;
@@ -20,7 +20,7 @@
 - db.customers.find({status: "active"}).pretty();
 - db.customers.find().limit(5).pretty();
 
-## 📖 GitOps Deployment
+## 📖 Docker push
 - Build and Push Docker Image
     docker build -t dockerelvis/argocd-app:latest -f docker/Dockerfile .
     docker login
@@ -42,23 +42,21 @@
 
 ## 🔗 Connect Git Repository
 - argocd login localhost:8080
-
 - add repo
-  argocd repo add git@github.com:Elvis-Ngwesse/argoCD-gitOps-casandra.git \
+  argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
   --ssh-private-key-path ~/.ssh/id_rsa
-
 - create app
-  argocd app create python-cassandra-app \
-  --repo git@github.com:Elvis-Ngwesse/argoCD-gitOps-casandra.git \
+  argocd app create python-mongodb-app \
+  --repo git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
   --path k8s \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace default \
   --sync-policy automated
-
 - delete app
   argocd app delete python-cassandra-app --cascade
+- 
 ## 🚀 Deploy with Argo CD
-Argo will auto-sync your manifests and deploy the app.
+- Argo will auto-sync your manifests and deploy the app.
 
 Step 7: Verify
 

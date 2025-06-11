@@ -4,9 +4,8 @@ containerization, and declarative infrastructure in a hands-on, cloud-native set
 and platform engineering skills.
 
 ## 📖 What is Argo CD?
-Argo CD is a declarative, GitOps continuous delivery tool for Kubernetes. It:
-Monitors Git repositories for Kubernetes manifests.
-Synchronizes Kubernetes clusters with the Git state.
+Argo CD is a declarative, GitOps continuous delivery tool for Kubernetes. It Monitors Git repositories 
+for Kubernetes manifests. Synchronizes Kubernetes clusters with the Git state.
 Offers a web UI and CLI for application lifecycle management.
 
 ## 🧰 Prerequisites
@@ -46,7 +45,9 @@ argoCD-gitOps-casandra/
 ## 👨‍🏫  Start Minikube
 - minikube start --nodes 3
 - kubectl get nodes
-- minikube ssh minikube ssh --node=minikube-m02 minikube ssh --node=minikube-m03
+- minikube ssh --node=minikube
+- minikube ssh --node=minikube-m02
+- minikube ssh --node=minikube-m03
 
 # Taint the master node so it won't run workloads:
 - kubectl taint nodes minikube node-role.kubernetes.io/master=:NoSchedule
@@ -60,4 +61,14 @@ argoCD-gitOps-casandra/
 
 # 🗑️ Delete Minikube
 - minikube stop minikube delete --all
+- minikube delete --all --purge
+
+# 🔧 Uninstall 
+- brew uninstall minikube
+  minikube delete --all
+  rm -rf ~/.minikube
+  rm -rf ~/.kube
+# 📦 Install minikube
+- brew install minikube
+
 
