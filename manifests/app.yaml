@@ -12,7 +12,7 @@ spec:
     path: k8s
   destination:
     server: https://kubernetes.default.svc
-    namespace: flask  # Namespace for deploying your app
+    namespace: test  # Namespace for deploying your app
   syncPolicy:
     automated:
       prune: true
