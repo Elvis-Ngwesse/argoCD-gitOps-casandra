@@ -78,8 +78,6 @@
 
 
 
-
-
 Helm charts version
 
 Metrics + Grafana for visibility
