@@ -51,6 +51,8 @@
   --path k8s \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace default \
+  --chart argoCD-mongodb-chart \
+  --version 0.0.1 \
   --sync-policy automated
 - delete app
   argocd app delete python-cassandra-app --cascade
@@ -65,8 +67,6 @@
 - 🔄 Make a Code Change
 - Push to GitHub
 - Argo CD syncs automatically and redeploys
-
-Let me know if you'd like:
 
 Helm charts version
 
