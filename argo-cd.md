@@ -38,7 +38,7 @@
 - Access: https://localhost:8080
 # 🔑 Default Login
     Username: admin
-    Password: run: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+    Password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 
 ## 🔗 Connect Git Repository
 - argocd login localhost:8080
@@ -46,7 +46,7 @@
   argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
   --ssh-private-key-path ~/.ssh/id_rsa
 - create app
-  argocd app create python-mongodb-app \
+  argocd app create python-mongo-app \
   --repo git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
   --path k8s \
   --dest-server https://kubernetes.default.svc \
