@@ -51,8 +51,6 @@
   --path k8s \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace default \
-  --chart argoCD-mongodb-chart \
-  --version 0.0.1 \
   --sync-policy automated
 - delete app
   argocd app delete python-cassandra-app --cascade
