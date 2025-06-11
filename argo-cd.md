@@ -57,9 +57,6 @@
 - 
 ## 🚀 Deploy with Argo CD
 - Argo will auto-sync your manifests and deploy the app.
-
-Step 7: Verify
-
 kubectl get pods
 kubectl get svc argocd-app
 

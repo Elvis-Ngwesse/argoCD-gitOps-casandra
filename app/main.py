@@ -5,19 +5,16 @@ import threading
 import time
 import uuid
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 fake = Faker()
 
-# MongoDB connection URI (use env var or default localhost)
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://mongo-service:27017")
-
-# Connect to MongoDB
 mongo_client = MongoClient(MONGO_URI)
-db = mongo_client['customerdb']      # Database name
-customers_collection = db['customers']  # Collection name
+db = mongo_client['customerdb']
+customers_collection = db['customers']
 
-# Predefined food items
 food_items = [
     "apple", "banana", "bread", "butter", "carrot", "cheese", "chicken", "chocolate",
     "coffee", "cookie", "egg", "fish", "grapes", "hamburger", "juice", "lettuce", "milk",
@@ -31,6 +28,7 @@ food_items = [
     "quinoa", "barley", "coconut", "almond", "walnut", "cashew", "hazelnut", "chili", "soup"
 ]
 
+
 def generate_customer():
     while True:
         customer_id = str(uuid.uuid4())
@@ -41,39 +39,74 @@ def generate_customer():
             "address": fake.address(),
             "status": fake.random_element(['active', 'inactive']),
             "country": fake.country(),
-            "basket": basket,  # store as list directly
+            "basket": basket,
         }
         customers_collection.insert_one(customer_data)
         time.sleep(5)
 
+
 @app.route('/')
 def index():
-    return '''
-    <pre>
-     _______           _                             _____                           _             
-    |__   __|         | |                           / ____|                         | |            
-       | | ___   ___ | | ___   _ _ __   ___ _ __   | |     ___  _ ____   _____ _ __ | |_ ___  _ __ 
-       | |/ _ \ / _ \| |/ / | | | '_ \ / _ \ '__|  | |    / _ \| '_ \ \ / / _ \ '_ \| __/ _ \| '__|
-       | | (_) | (_) |   <| |_| | |_) |  __/ |     | |___| (_) | | | \ V /  __/ | | | || (_) | |   
-       |_|\___/ \___/|_|\_\\__, | .__/ \___|_|      \_____\___/|_| |_|\_/ \___|_| |_|\__\___/|_|   
-                            __/ | |                                                              
-                           |___/|_|       🚀 Customer Generator is Running...
-    </pre>
-    <p>Status: ✅ Active</p>
-    <p>Generating fake customers every 5 seconds</p>
-    '''
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    location = fake.city()
+    country = fake.country()
 
-# Start background thread to generate customers
+    html = f'''
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Customer Generator Status</title>
+        <style>
+            body {{
+                background-color: #87CEEB; /* sky blue */
+                font-family: Arial, sans-serif;
+                color: #03396c;
+                text-align: center;
+                padding: 50px;
+            }}
+            h1 {{
+                font-size: 4em;   /* bigger text */
+                margin-bottom: 0;
+            }}
+            p {{
+                font-size: 2em;   /* bigger text */
+                margin: 15px 0;
+            }}
+            .symbols {{
+                font-size: 3em;  /* bigger symbols */
+                margin-top: 20px;
+            }}
+            .box {{
+                background: rgba(255, 255, 255, 0.7);
+                padding: 25px;
+                border-radius: 15px;
+                display: inline-block;
+                margin-top: 20px;
+                box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="box">
+            <h1>🚀 Customer Generator</h1>
+            <p>Status: ✅ Active and Running</p>
+            <p>Current Date & Time: <strong>{now}</strong></p>
+            <p>Location: <strong>{location}</strong></p>
+            <p>Country: <strong>{country}</strong></p>
+            <div class="symbols">
+                &#127822; &#127823; &#127824; &#127825; &#127826; &#127827;
+            </div>
+            <p>Generating fake customers every 5 seconds...</p>
+        </div>
+    </body>
+    </html>
+    '''
+    return html
+
+
 threading.Thread(target=generate_customer, daemon=True).start()
 
 if __name__ == '__main__':
-    print(r"""
-  ____           _                   _                   _____                         
- / ___|___ _ __ | |_ _   _ _ __ ___ | |__   ___ _ __    |  ___|__  _ __ ___ ___  ___  
-| |   / _ \ '_ \| __| | | | '_ ` _ \| '_ \ / _ \ '__|   | |_ / _ \| '__/ __/ _ \/ __| 
-| |__|  __/ | | | |_| |_| | | | | | | |_) |  __/ |      |  _| (_) | | | (_|  __/\__ \ 
- \____\___|_| |_|\__|\__,_|_| |_| |_|_.__/ \___|_|      |_|  \___/|_|  \___\___||___/ 
-
-🚀 Customer Generator Service is running at http://localhost:5000
-""")
+    print("Customer Generator Service is running at http://localhost:5000")
     app.run(host='0.0.0.0', port=5000)
