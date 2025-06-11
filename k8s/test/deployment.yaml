@@ -142,7 +142,7 @@ spec:
             storage: 1Gi
 ---
 # ---------------------------------------------------
-# 5. PreSync Job to delete mongo StatefulSet (hook)
+# 5. PreSync Job to delete mongo StatefulSet
 # ---------------------------------------------------
 apiVersion: batch/v1
 kind: Job
@@ -150,8 +150,6 @@ metadata:
   name: delete-mongo-statefulset
   namespace: test
   annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/hook-delete-policy: HookSucceeded
     argocd.argoproj.io/sync-wave: "2"
 spec:
   backoffLimit: 1
@@ -166,6 +164,7 @@ spec:
             - /bin/sh
             - -c
             - kubectl delete statefulset mongo --namespace=test --cascade=orphan
+
 ---
 # ---------------------------------------------------
 # 6. Flask App Deployment + Service
