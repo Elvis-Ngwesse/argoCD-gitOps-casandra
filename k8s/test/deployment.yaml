@@ -9,7 +9,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 ---
 # ---------------------------------------------------
-# 2. ServiceAccount + RBAC FIRST
+# 2. ServiceAccount + RBAC
 # ---------------------------------------------------
 apiVersion: v1
 kind: ServiceAccount
@@ -48,12 +48,14 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ---
 # ---------------------------------------------------
-# 3. PersistentVolume + PVC (local testing only)
+# 3. PersistentVolume + PVC (for local testing only)
 # ---------------------------------------------------
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: mongo-pv
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   capacity:
     storage: 1Gi
@@ -68,6 +70,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: mongo-pvc
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -84,6 +88,8 @@ kind: Service
 metadata:
   name: mongo-service
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   clusterIP: None
   selector:
@@ -98,6 +104,8 @@ kind: StatefulSet
 metadata:
   name: mongo
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   serviceName: "mongo-service"
   replicas: 2
@@ -134,13 +142,41 @@ spec:
             storage: 1Gi
 ---
 # ---------------------------------------------------
-# 5. Flask App Deployment + Service
+# 5. PreSync Job to delete mongo StatefulSet (hook)
+# ---------------------------------------------------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: delete-mongo-statefulset
+  namespace: test
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      serviceAccountName: argocd-manager
+      restartPolicy: Never
+      containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - kubectl delete statefulset mongo --namespace=test --cascade=orphan
+---
+# ---------------------------------------------------
+# 6. Flask App Deployment + Service
 # ---------------------------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: argocd-app
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   replicas: 2
   selector:
@@ -177,6 +213,8 @@ kind: Service
 metadata:
   name: flask-service
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   type: NodePort
   selector:
