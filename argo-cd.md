@@ -70,9 +70,10 @@
 
 ## 🚀 Deploy with Argo CD
 - Argo will auto-sync your manifests and deploy the app.
+
 # 🛡️ Verify
 - kubectl get pods
-- kubectl get svc argocd-app
+- kubectl get svc argocd-server -n argocd
 
 ## 🔑 Use minikube service argocd-app to access the app.
 - 🔄 Make a Code Change
@@ -85,3 +86,9 @@ Helm charts version
 Metrics + Grafana for visibility
 
 Ingress setup with TLS
+
+# ✅ Get app history
+    argocd app history python-mongodb-test
+
+# ✅ Roll back deployment
+    argocd app rollback python-mongodb-test 0
