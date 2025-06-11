@@ -185,29 +185,3 @@ spec:
     - port: 5000
       targetPort: 5000
       nodePort: 30090
----
-# ---------------------------------------------------
-# 6. ArgoCD PreSync Hook Job
-# ---------------------------------------------------
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: delete-mongo-statefulset
-  namespace: test
-  annotations:
-    argocd.argoproj.io/hook: PreSync
-    argocd.argoproj.io/hook-delete-policy: HookSucceeded
-    argocd.argoproj.io/sync-wave: "10"
-spec:
-  backoffLimit: 1
-  template:
-    spec:
-      serviceAccountName: argocd-manager
-      restartPolicy: Never
-      containers:
-        - name: kubectl
-          image: bitnami/kubectl:latest
-          command:
-            - /bin/sh
-            - -c
-            - kubectl delete statefulset mongo --namespace=test --cascade=orphan
