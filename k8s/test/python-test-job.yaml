@@ -28,7 +28,9 @@ spec:
             - sh
             - -c
             - |
-              pip install -r unit-tests/requirements.txt && pytest unit-tests/test_app.py
+              pip install -r unit-tests/requirements.txt && \
+              export PYTHONPATH=/app && \
+              pytest unit-tests/test_app.py
           workingDir: /app
           volumeMounts:
             - name: app-code
