@@ -4,3 +4,5 @@ faker
 pymongo
 boto3
 pytest-html
+botocore
+
