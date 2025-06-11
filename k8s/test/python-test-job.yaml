@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: python-test-job
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: app-code
+          emptyDir: {}
+
+      initContainers:
+        - name: git-clone
+          image: alpine/git
+          command: ["sh", "-c", "git clone https://github.com/Elvis-Ngwesse/argoCD-mongodb.git /app"]
+          volumeMounts:
+            - name: app-code
+              mountPath: /app
+
+      containers:
+        - name: pytest
+          image: python:3.10
+          command:
+            - sh
+            - -c
+            - |
+              pip install -r unit-tests/requirements.txt && pytest unit-tests/test_app.py
+          workingDir: /app
+          volumeMounts:
+            - name: app-code
+              mountPath: /app
