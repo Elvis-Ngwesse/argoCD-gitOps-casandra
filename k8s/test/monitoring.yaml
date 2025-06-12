@@ -25,10 +25,18 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/loki
+            - name: wal
+              mountPath: /wal
+            - name: loki-data
+              mountPath: /loki
       volumes:
         - name: config
           configMap:
             name: loki-config
+        - name: wal
+          emptyDir: {}
+        - name: loki-data
+          emptyDir: {}
 
 ---
 apiVersion: v1
@@ -44,6 +52,9 @@ data:
     server:
       http_listen_port: 3100
     ingester:
+      wal:
+        enabled: true
+        dir: /wal
       lifecycler:
         ring:
           kvstore:
