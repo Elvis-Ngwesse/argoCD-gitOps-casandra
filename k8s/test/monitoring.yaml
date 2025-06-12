@@ -1,159 +1,190 @@
 ---
 # ---------------------------------------------------
-# 7. Prometheus Operator Namespace + CRDs (optional, if not installed)
+# 7. Prometheus Operator CRDs (sync-wave: 6)
 # ---------------------------------------------------
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: monitoring
----
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: servicemonitors.monitoring.coreos.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   group: monitoring.coreos.com
+  names:
+    kind: ServiceMonitor
+    plural: servicemonitors
+    singular: servicemonitor
+  scope: Namespaced
   versions:
     - name: v1
       served: true
       storage: true
-  scope: Namespaced
-  names:
-    plural: servicemonitors
-    singular: servicemonitor
-    kind: ServiceMonitor
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+  # (For brevity, minimal schema is here; typically you'd apply the full CRD via kubectl or Helm)
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: prometheuses.monitoring.coreos.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   group: monitoring.coreos.com
+  names:
+    kind: Prometheus
+    plural: prometheuses
+    singular: prometheus
+  scope: Namespaced
   versions:
     - name: v1
       served: true
       storage: true
-  scope: Namespaced
-  names:
-    plural: prometheuses
-    singular: prometheus
-    kind: Prometheus
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: prometheusrules.monitoring.coreos.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   group: monitoring.coreos.com
+  names:
+    kind: PrometheusRule
+    plural: prometheusrules
+    singular: prometheusrule
+  scope: Namespaced
   versions:
     - name: v1
       served: true
       storage: true
-  scope: Namespaced
-  names:
-    plural: prometheusrules
-    singular: prometheusrule
-    kind: PrometheusRule
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: alertmanagers.monitoring.coreos.com
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   group: monitoring.coreos.com
+  names:
+    kind: Alertmanager
+    plural: alertmanagers
+    singular: alertmanager
+  scope: Namespaced
   versions:
     - name: v1
       served: true
       storage: true
-  scope: Namespaced
-  names:
-    plural: alertmanagers
-    singular: alertmanager
-    kind: Alertmanager
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
 ---
 # ---------------------------------------------------
-# 8. Prometheus Service Account, Role, RoleBinding
+# 8. Prometheus Operator Deployment (sync-wave: 7)
 # ---------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-operator
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "7"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-operator
+  template:
+    metadata:
+      labels:
+        app: prometheus-operator
+    spec:
+      serviceAccountName: argocd-manager
+      containers:
+        - name: prometheus-operator
+          image: quay.io/prometheus-operator/prometheus-operator:v0.62.0
+          args:
+            - --kubelet-service=kube-system/kubelet
+            - --logtostderr=true
+            - --config-reloader-image=quay.io/prometheus-operator/config-reloader:v0.62.0
+          ports:
+            - containerPort: 8080
+---
 apiVersion: v1
-kind: ServiceAccount
+kind: Service
 metadata:
-  name: prometheus
+  name: prometheus-operator
   namespace: test
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: prometheus
-  namespace: test
-rules:
-  - apiGroups: [""]
-    resources: ["pods", "services", "endpoints", "nodes", "namespaces"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups:
-      - monitoring.coreos.com
-    resources:
-      - servicemonitors
-    verbs:
-      - get
-      - list
-      - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: prometheus
-  namespace: test
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: prometheus
-subjects:
-  - kind: ServiceAccount
-    name: prometheus
-    namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "7"
+spec:
+  selector:
+    app: prometheus-operator
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
 ---
 # ---------------------------------------------------
-# 9. Prometheus Deployment
+# 9. Prometheus instance (sync-wave: 8)
 # ---------------------------------------------------
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
   name: prometheus
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "8"
 spec:
   replicas: 1
-  serviceAccountName: prometheus
+  serviceAccountName: argocd-manager
   serviceMonitorSelector:
     matchLabels:
-      monitoring: enabled
+      team: frontend
   resources:
     requests:
       memory: 400Mi
       cpu: 200m
-  alerting:
-    alertmanagers: []
-  ruleSelector: {}
-  scrapeInterval: 15s
-  evaluationInterval: 15s
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: prometheus-service
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "8"
 spec:
   type: NodePort
-  ports:
-    - port: 9090
-      targetPort: 9090
-      nodePort: 30900
-      protocol: TCP
-      name: web
   selector:
     prometheus: prometheus
+  ports:
+    - name: web
+      port: 9090
+      targetPort: 9090
+      nodePort: 30900
 ---
 # ---------------------------------------------------
-# 10. ServiceMonitor for all pods in "test" namespace
+# 10. ServiceMonitor for your apps (sync-wave: 9)
 # ---------------------------------------------------
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -161,37 +192,27 @@ metadata:
   name: all-apps-servicemonitor
   namespace: test
   labels:
-    monitoring: enabled
+    team: frontend
+  annotations:
+    argocd.argoproj.io/sync-wave: "9"
 spec:
   selector:
-    matchExpressions:
-      - {key: app, operator: Exists}
-  namespaceSelector:
-    matchNames:
-      - test
+    matchLabels:
+      app: argocd-app
   endpoints:
-    - port: http-metrics
+    - port: http
       interval: 15s
-      path: /metrics
 ---
 # ---------------------------------------------------
-# 11. Add metrics port to your deployments
-# ---------------------------------------------------
-# NOTE: You need to add a containerPort named "http-metrics" (port 9100 or as your app exposes) to each of your Deployments
-# For example, add to argocd-app and flask-minio containers:
-# ports:
-#   - containerPort: 9100
-#     name: http-metrics
-# Then expose /metrics endpoint in your apps or use exporters.
----
-# ---------------------------------------------------
-# 12. Grafana Deployment + Service
+# 11. Grafana Deployment + Service (sync-wave: 9)
 # ---------------------------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "9"
 spec:
   replicas: 1
   selector:
@@ -210,25 +231,19 @@ spec:
           env:
             - name: GF_SECURITY_ADMIN_PASSWORD
               value: "admin"
-            - name: GF_AUTH_ANONYMOUS_ENABLED
-              value: "true"
-          volumeMounts:
-            - name: grafana-storage
-              mountPath: /var/lib/grafana
-      volumes:
-        - name: grafana-storage
-          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: grafana-service
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "9"
 spec:
   type: NodePort
+  selector:
+    app: grafana
   ports:
     - port: 3000
       targetPort: 3000
-      nodePort: 32000
-  selector:
-    app: grafana
+      nodePort: 30300
