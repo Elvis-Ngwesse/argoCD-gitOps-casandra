@@ -151,6 +151,9 @@ spec:
 # ---------------------------------------------------
 # 9. Prometheus instance (sync-wave: 8)
 # ---------------------------------------------------
+# ---------------------------------------------------
+# 9. Prometheus instance (sync-wave: 8)
+# ---------------------------------------------------
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
@@ -168,6 +171,15 @@ spec:
     requests:
       memory: 400Mi
       cpu: 200m
+  enableAdminAPI: true
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+        storageClassName: standard  # ⚠️ adjust if your cluster uses another StorageClass
 ---
 apiVersion: v1
 kind: Service
@@ -185,6 +197,7 @@ spec:
       port: 9090
       targetPort: 9090
       nodePort: 30900
+
 ---
 # ---------------------------------------------------
 # 10. ServiceMonitor for your apps (sync-wave: 9)
