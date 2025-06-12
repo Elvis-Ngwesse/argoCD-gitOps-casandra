@@ -1,7 +1,6 @@
----
-# ---------------------------------------------------
-# 7. Prometheus Operator CRDs (sync-wave: 6)
-# ---------------------------------------------------
+# -----------------------------------------
+# 7. CRDs (Prometheus Operator) - sync-wave 6
+# -----------------------------------------
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -22,10 +21,6 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
-          properties:
-            spec:
-              type: object
-  # (For brevity, minimal schema is here; typically you'd apply the full CRD via kubectl or Helm)
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -47,9 +42,6 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
-          properties:
-            spec:
-              type: object
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -71,9 +63,6 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
-          properties:
-            spec:
-              type: object
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -95,13 +84,10 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
-          properties:
-            spec:
-              type: object
 ---
-# ---------------------------------------------------
-# 8. Prometheus Operator Deployment (sync-wave: 7)
-# ---------------------------------------------------
+# -----------------------------------------
+# 8. Prometheus Operator - sync-wave 7
+# -----------------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -123,13 +109,6 @@ spec:
       containers:
         - name: prometheus-operator
           image: quay.io/prometheus-operator/prometheus-operator:v0.62.0
-          args:
-            - --kubelet-service=kube-system/kubelet
-            - --prometheus-config-reloader=quay.io/prometheus-operator/prometheus-config-reloader:v0.62.0
-            - --prometheus-default-base-image=quay.io/prometheus/prometheus
-            - --alertmanager-default-base-image=quay.io/prometheus/alertmanager
-            - --log-level=info
-
           ports:
             - containerPort: 8080
 ---
@@ -148,12 +127,9 @@ spec:
       port: 8080
       targetPort: 8080
 ---
-# ---------------------------------------------------
-# 9. Prometheus instance (sync-wave: 8)
-# ---------------------------------------------------
-# ---------------------------------------------------
-# 9. Prometheus instance (sync-wave: 8)
-# ---------------------------------------------------
+# -----------------------------------------
+# 9. Prometheus Instance - sync-wave 8
+# -----------------------------------------
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
@@ -167,19 +143,9 @@ spec:
   serviceMonitorSelector:
     matchLabels:
       team: frontend
-  resources:
-    requests:
-      memory: 400Mi
-      cpu: 200m
   enableAdminAPI: true
   storage:
-    volumeClaimTemplate:
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 5Gi
-        storageClassName: standard  # ⚠️ adjust if your cluster uses another StorageClass
+    emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -191,17 +157,17 @@ metadata:
 spec:
   type: NodePort
   selector:
+    app.kubernetes.io/name: prometheus
     prometheus: prometheus
   ports:
     - name: web
       port: 9090
       targetPort: 9090
       nodePort: 30900
-
 ---
-# ---------------------------------------------------
-# 10. ServiceMonitor for your apps (sync-wave: 9)
-# ---------------------------------------------------
+# -----------------------------------------
+# 10. ServiceMonitor - sync-wave 9
+# -----------------------------------------
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -219,9 +185,9 @@ spec:
     - port: http
       interval: 15s
 ---
-# ---------------------------------------------------
-# 11. Grafana Deployment + Service (sync-wave: 9)
-# ---------------------------------------------------
+# -----------------------------------------
+# 11. Grafana - sync-wave 9
+# -----------------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
