@@ -97,15 +97,22 @@ docker build -t flask-minio-presigned .
 # Load the image into Minikube's Docker daemon
 minikube image load flask-minio-presigned
 
-## 📖 Docker push
+## 📖 Docker push flask-minio image
 - Build and Push Docker Image
   docker build -t dockerelvis/presigned-app:latest -f docker2/Dockerfile .
   docker login
   docker push dockerelvis/presigned-app:latest
 
-get the service endpoint and add /presigned-urls
-http://<minikube-ip>:<nodeport>/presigned-urls
+## Get pre-signed Url
+- Use port forwarding
+- kubectl port-forward svc/flask-minio-service 5002:80 -n test
+- http://localhost:5002/presigned-urls
+- enter in browser to download pre-signed url as below
 
-get a json which is key value and download resources
-
-
+{
+"results/results_20250611224950.html": "http://minio-service:9000/test-reports/results/results_20250611224950.html?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20250612%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250612T054129Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=cdf6960de4923d4a6d7e1e48935e2c24ed6a0b472264345f3b19cecd915ff622",
+"results/results_20250611224950.xml": "http://minio-service:9000/test-reports/results/results_20250611224950.xml?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20250612%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250612T054129Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b436169b5d1cfe2cf8c8c6fc764ac85aaa38e21dd052785180e2da4733f41a4c"
+}
+- kubectl port-forward svc/minio-service 9000:9000 -n test
+- wget "http://localhost:9000/test-reports/results/results_20250611224950.html?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20250612%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250612T054129Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=cdf6960de4923d4a6d7e1e48935e2c24ed6a0b472264345f3b19cecd915ff622"
+- curl --resolve minio-service:9000:127.0.0.1 -o results.html "http://localhost:9000/test-reports/results/results_20250611224950.html?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20250612%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250612T054129Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=cdf6960de4923d4a6d7e1e48935e2c24ed6a0b472264345f3b19cecd915ff622"
