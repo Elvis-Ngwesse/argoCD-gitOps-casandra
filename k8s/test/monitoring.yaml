@@ -125,7 +125,7 @@ spec:
           image: quay.io/prometheus-operator/prometheus-operator:v0.62.0
           args:
             - --kubelet-service=kube-system/kubelet
-            - --logtostderr=true
+            # Removed --logtostderr flag
             - --config-reloader-image=quay.io/prometheus-operator/config-reloader:v0.62.0
           ports:
             - containerPort: 8080
