@@ -1,12 +1,37 @@
-# -------------------------------
-# CRDs (Prometheus + ServiceMonitor)
-# -------------------------------
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test
+---
+# Prometheus CRDs (minimal needed)
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: prometheuses.monitoring.coreos.com
+spec:
+  group: monitoring.coreos.com
+  names:
+    kind: Prometheus
+    plural: prometheuses
+    singular: prometheus
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   name: servicemonitors.monitoring.coreos.com
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
 spec:
   group: monitoring.coreos.com
   names:
@@ -21,18 +46,16 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
-
+          properties:
+            spec:
+              type: object
 ---
-# -------------------------------
 # Prometheus Operator Deployment
-# -------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prometheus-operator
   namespace: test
-  annotations:
-    argocd.argoproj.io/sync-wave: "7"
 spec:
   replicas: 1
   selector:
@@ -43,53 +66,59 @@ spec:
       labels:
         app: prometheus-operator
     spec:
+      serviceAccountName: default
       containers:
         - name: prometheus-operator
           image: quay.io/prometheus-operator/prometheus-operator:v0.62.0
+          args:
+            - --kubelet-service=kube-system/kubelet
           ports:
             - containerPort: 8080
-
 ---
-# -------------------------------
-# Prometheus Instance
-# -------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-operator
+  namespace: test
+spec:
+  selector:
+    app: prometheus-operator
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+# Prometheus Instance (minimal)
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
   name: prometheus
   namespace: test
-  annotations:
-    argocd.argoproj.io/sync-wave: "8"
 spec:
   replicas: 1
+  serviceAccountName: default
   serviceMonitorSelector:
     matchLabels:
       monitor: basic
-  serviceAccountName: default
   storage:
     emptyDir: {}
-
 ---
+# Prometheus Service
 apiVersion: v1
 kind: Service
 metadata:
   name: prometheus-service
   namespace: test
-  annotations:
-    argocd.argoproj.io/sync-wave: "7"
 spec:
   type: NodePort
   selector:
     prometheus: prometheus
   ports:
-    - port: 9090
+    - name: web
+      port: 9090
       targetPort: 9090
       nodePort: 30900
-
 ---
-# -------------------------------
-# ServiceMonitor (target your app)
-# -------------------------------
+# ServiceMonitor to scrape your app
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -97,8 +126,6 @@ metadata:
   namespace: test
   labels:
     monitor: basic
-  annotations:
-    argocd.argoproj.io/sync-wave: "8"
 spec:
   selector:
     matchLabels:
@@ -106,18 +133,13 @@ spec:
   endpoints:
     - port: http
       interval: 15s
-
 ---
-# -------------------------------
-# Grafana Deployment + Service
-# -------------------------------
+# Grafana Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
   namespace: test
-  annotations:
-    argocd.argoproj.io/sync-wave: "8"
 spec:
   replicas: 1
   selector:
@@ -136,15 +158,12 @@ spec:
           env:
             - name: GF_SECURITY_ADMIN_PASSWORD
               value: "admin"
-
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: grafana-service
   namespace: test
-  annotations:
-    argocd.argoproj.io/sync-wave: "8"
 spec:
   type: NodePort
   selector:
