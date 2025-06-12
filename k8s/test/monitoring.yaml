@@ -1,0 +1,234 @@
+---
+# ---------------------------------------------------
+# 7. Prometheus Operator Namespace + CRDs (optional, if not installed)
+# ---------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: servicemonitors.monitoring.coreos.com
+spec:
+  group: monitoring.coreos.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  scope: Namespaced
+  names:
+    plural: servicemonitors
+    singular: servicemonitor
+    kind: ServiceMonitor
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: prometheuses.monitoring.coreos.com
+spec:
+  group: monitoring.coreos.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  scope: Namespaced
+  names:
+    plural: prometheuses
+    singular: prometheus
+    kind: Prometheus
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: prometheusrules.monitoring.coreos.com
+spec:
+  group: monitoring.coreos.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  scope: Namespaced
+  names:
+    plural: prometheusrules
+    singular: prometheusrule
+    kind: PrometheusRule
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: alertmanagers.monitoring.coreos.com
+spec:
+  group: monitoring.coreos.com
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  scope: Namespaced
+  names:
+    plural: alertmanagers
+    singular: alertmanager
+    kind: Alertmanager
+---
+# ---------------------------------------------------
+# 8. Prometheus Service Account, Role, RoleBinding
+# ---------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: test
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: prometheus
+  namespace: test
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints", "nodes", "namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus
+  namespace: test
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: test
+---
+# ---------------------------------------------------
+# 9. Prometheus Deployment
+# ---------------------------------------------------
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+  namespace: test
+spec:
+  replicas: 1
+  serviceAccountName: prometheus
+  serviceMonitorSelector:
+    matchLabels:
+      monitoring: enabled
+  resources:
+    requests:
+      memory: 400Mi
+      cpu: 200m
+  alerting:
+    alertmanagers: []
+  ruleSelector: {}
+  scrapeInterval: 15s
+  evaluationInterval: 15s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: test
+spec:
+  type: NodePort
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30900
+      protocol: TCP
+      name: web
+  selector:
+    prometheus: prometheus
+---
+# ---------------------------------------------------
+# 10. ServiceMonitor for all pods in "test" namespace
+# ---------------------------------------------------
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: all-apps-servicemonitor
+  namespace: test
+  labels:
+    monitoring: enabled
+spec:
+  selector:
+    matchExpressions:
+      - {key: app, operator: Exists}
+  namespaceSelector:
+    matchNames:
+      - test
+  endpoints:
+    - port: http-metrics
+      interval: 15s
+      path: /metrics
+---
+# ---------------------------------------------------
+# 11. Add metrics port to your deployments
+# ---------------------------------------------------
+# NOTE: You need to add a containerPort named "http-metrics" (port 9100 or as your app exposes) to each of your Deployments
+# For example, add to argocd-app and flask-minio containers:
+# ports:
+#   - containerPort: 9100
+#     name: http-metrics
+# Then expose /metrics endpoint in your apps or use exporters.
+---
+# ---------------------------------------------------
+# 12. Grafana Deployment + Service
+# ---------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "admin"
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "true"
+          volumeMounts:
+            - name: grafana-storage
+              mountPath: /var/lib/grafana
+      volumes:
+        - name: grafana-storage
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+  namespace: test
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 32000
+  selector:
+    app: grafana
