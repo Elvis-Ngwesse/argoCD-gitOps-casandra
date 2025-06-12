@@ -20,3 +20,4 @@ Gemfile.lock
 .idea
 venv/
 /results.html
+/results.xml
