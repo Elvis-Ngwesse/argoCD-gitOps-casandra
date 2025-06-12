@@ -1,145 +1,173 @@
----
-# Namespace
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: test
----
-# Prometheus CRDs (minimal needed)
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: prometheuses.monitoring.coreos.com
-spec:
-  group: monitoring.coreos.com
-  names:
-    kind: Prometheus
-    plural: prometheuses
-    singular: prometheus
-  scope: Namespaced
-  versions:
-    - name: v1
-      served: true
-      storage: true
-      schema:
-        openAPIV3Schema:
-          type: object
-          properties:
-            spec:
-              type: object
----
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: servicemonitors.monitoring.coreos.com
-spec:
-  group: monitoring.coreos.com
-  names:
-    kind: ServiceMonitor
-    plural: servicemonitors
-    singular: servicemonitor
-  scope: Namespaced
-  versions:
-    - name: v1
-      served: true
-      storage: true
-      schema:
-        openAPIV3Schema:
-          type: object
-          properties:
-            spec:
-              type: object
----
-# Prometheus Operator Deployment
+# Loki Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: prometheus-operator
+  name: loki
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: prometheus-operator
+      app: loki
   template:
     metadata:
       labels:
-        app: prometheus-operator
+        app: loki
     spec:
-      serviceAccountName: default
       containers:
-        - name: prometheus-operator
-          image: quay.io/prometheus-operator/prometheus-operator:v0.62.0
-          args:
-            - --kubelet-service=kube-system/kubelet
+        - name: loki
+          image: grafana/loki:2.9.0
+          args: ["-config.file=/etc/loki/config.yaml"]
           ports:
-            - containerPort: 8080
+            - containerPort: 3100
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+      volumes:
+        - name: config
+          configMap:
+            name: loki-config
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+data:
+  config.yaml: |
+    auth_enabled: false
+    server:
+      http_listen_port: 3100
+    ingester:
+      lifecycler:
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+        final_sleep: 0s
+      chunk_idle_period: 3m
+      chunk_retain_period: 1m
+    schema_config:
+      configs:
+        - from: 2024-01-01
+          store: boltdb
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+    storage_config:
+      boltdb:
+        directory: /loki/index
+      filesystem:
+        directory: /loki/chunks
+    limits_config:
+      enforce_metric_name: false
+    chunk_store_config:
+      max_look_back_period: 0s
+    table_manager:
+      retention_deletes_enabled: true
+      retention_period: 24h
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: prometheus-operator
+  name: loki
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  ports:
+    - port: 3100
+      targetPort: 3100
+  selector:
+    app: loki
+
+---
+# Promtail
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   selector:
-    app: prometheus-operator
-  ports:
-    - port: 8080
-      targetPort: 8080
----
-# Prometheus Instance (minimal)
-apiVersion: monitoring.coreos.com/v1
-kind: Prometheus
-metadata:
-  name: prometheus
-  namespace: test
-spec:
-  replicas: 1
-  serviceAccountName: default
-  serviceMonitorSelector:
     matchLabels:
-      monitor: basic
-  storage:
-    emptyDir: {}
+      app: promtail
+  template:
+    metadata:
+      labels:
+        app: promtail
+    spec:
+      containers:
+        - name: promtail
+          image: grafana/promtail:2.9.0
+          args: ["-config.file=/etc/promtail/config.yaml"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: varlog
+              mountPath: /var/log
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: promtail-config
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+
 ---
-# Prometheus Service
 apiVersion: v1
-kind: Service
+kind: ConfigMap
 metadata:
-  name: prometheus-service
+  name: promtail-config
   namespace: test
-spec:
-  type: NodePort
-  selector:
-    prometheus: prometheus
-  ports:
-    - name: web
-      port: 9090
-      targetPort: 9090
-      nodePort: 30900
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+data:
+  config.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: system
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: varlogs
+              __path__: /var/log/*.log
+
 ---
-# ServiceMonitor to scrape your app
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: app-servicemonitor
-  namespace: test
-  labels:
-    monitor: basic
-spec:
-  selector:
-    matchLabels:
-      app: argocd-app
-  endpoints:
-    - port: http
-      interval: 15s
----
-# Grafana Deployment
+# Grafana
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   replicas: 1
   selector:
@@ -155,20 +183,20 @@ spec:
           image: grafana/grafana:latest
           ports:
             - containerPort: 3000
-          env:
-            - name: GF_SECURITY_ADMIN_PASSWORD
-              value: "admin"
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: grafana-service
+  name: grafana
   namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   type: NodePort
   selector:
     app: grafana
   ports:
-    - port: 3000
+    - port: 80
       targetPort: 3000
-      nodePort: 30300
+      nodePort: 30091
