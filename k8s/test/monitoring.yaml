@@ -125,8 +125,11 @@ spec:
           image: quay.io/prometheus-operator/prometheus-operator:v0.62.0
           args:
             - --kubelet-service=kube-system/kubelet
-            # Removed --logtostderr flag
-            - --config-reloader-image=quay.io/prometheus-operator/config-reloader:v0.62.0
+            - --prometheus-config-reloader=quay.io/prometheus-operator/prometheus-config-reloader:v0.62.0
+            - --prometheus-default-base-image=quay.io/prometheus/prometheus
+            - --alertmanager-default-base-image=quay.io/prometheus/alertmanager
+            - --log-level=info
+
           ports:
             - containerPort: 8080
 ---
