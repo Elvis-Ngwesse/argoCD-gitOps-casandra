@@ -15,13 +15,15 @@ metadata:
   name: promtail-pod-reader
 rules:
   - apiGroups: [""]
-    resources: ["pods"]
+    resources: ["pods", "namespaces"]  # ✅ Added "namespaces"
     verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: promtail-pod-reader-binding
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 subjects:
   - kind: ServiceAccount
     name: promtail
