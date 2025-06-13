@@ -30,7 +30,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: promtail
-    apiGroup: rbac.authorization.k8s.io
+    namespace: test
 roleRef:
   kind: ClusterRole
   name: promtail-pod-reader
