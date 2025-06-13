@@ -247,8 +247,13 @@ Download test results from the MinIO web interface.
 ---
 
 ## ⌚ Metrics + Grafana for Visibility
-
-> Set up monitoring using Grafana. Configure Prometheus scrapers if needed.
+- run the command
+    minikube service grafana -n test --url
+- go to the displayed url
+- username: admin
+- password: admin
+- add data source loki and set url
+  http://loki:3100
 
 ---
 

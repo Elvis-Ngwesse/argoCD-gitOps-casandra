@@ -118,6 +118,7 @@ spec:
       labels:
         app: promtail
     spec:
+      serviceAccountName: default
       containers:
         - name: promtail
           image: grafana/promtail:2.9.0
@@ -130,6 +131,12 @@ spec:
             - name: varlibdockercontainers
               mountPath: /var/lib/docker/containers
               readOnly: true
+            - name: pods
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: containers
+              mountPath: /var/lib/containerd
+              readOnly: true
       volumes:
         - name: config
           configMap:
@@ -140,6 +147,12 @@ spec:
         - name: varlibdockercontainers
           hostPath:
             path: /var/lib/docker/containers
+        - name: pods
+          hostPath:
+            path: /var/log/pods
+        - name: containers
+          hostPath:
+            path: /var/lib/containerd
 
 ---
 apiVersion: v1
@@ -169,6 +182,29 @@ data:
             labels:
               job: varlogs
               __path__: /var/log/*.log
+
+      - job_name: flask-app
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: argocd-app
+            action: keep
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_container_name]
+            target_label: container
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: job
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
+            regex: (.+);(.+)
+            replacement: /var/log/pods/${1}/*.log
+            target_label: __path__
 
 ---
 # Grafana
