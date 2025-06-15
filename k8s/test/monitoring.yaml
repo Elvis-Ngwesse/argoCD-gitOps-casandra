@@ -205,7 +205,6 @@ spec:
             path: /var/lib/containerd
 
 ---
-# Promtail ConfigMap
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -239,8 +238,11 @@ data:
         pipeline_stages:
           - docker: {}
         relabel_configs:
-          - source_labels: [__meta_kubernetes_pod_label_app]
+          # Set job to pod name (instead of app label, which might be missing)
+          - source_labels: [__meta_kubernetes_pod_name]
             target_label: job
+
+          # Copy namespace, pod, container, and node labels for metadata
           - source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
           - source_labels: [__meta_kubernetes_pod_name]
@@ -249,11 +251,18 @@ data:
             target_label: container
           - source_labels: [__meta_kubernetes_pod_node_name]
             target_label: node
+
+          # Construct __path__ for container logs in /var/log/pods/<podUID>/<container>/*.log
           - action: replace
             source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
             regex: (.+);(.+)
-            replacement: /var/log/pods/${1}/*.log
+            replacement: /var/log/pods/${1}/${2}/*.log
             target_label: __path__
+
+          # Keep all pods (don't drop any)
+          - action: keep
+            # no source_labels or regex means keep all discovered pods
+
 
 ---
 # Grafana
