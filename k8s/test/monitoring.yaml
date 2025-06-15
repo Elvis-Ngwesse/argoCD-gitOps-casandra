@@ -159,14 +159,17 @@ spec:
       labels:
         app: promtail
     spec:
-      serviceAccountName: promtail       # corrected from serviceAccount
+      serviceAccountName: promtail
       containers:
         - name: promtail
-          image: grafana/promtail:3.2.1  # pinned image version is good
+          image: grafana/promtail:3.2.1
           args:
             - -config.file=/etc/promtail/config.yaml
+            - -config.expand-env
           env:
-            - name: HOSTNAME              # needed for kubernetes_sd_configs
+            - name: LOKI_URL
+              value: http://loki:3100/loki/api/v1/push
+            - name: HOSTNAME
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
@@ -220,7 +223,7 @@ data:
       filename: /tmp/positions.yaml
 
     clients:
-      - url: http://loki:3100/loki/api/v1/push  
+      - url: ${LOKI_URL}
 
     scrape_configs:
       - job_name: system
@@ -234,7 +237,7 @@ data:
         kubernetes_sd_configs:
           - role: pod
         pipeline_stages:
-          - docker: {}         
+          - docker: {}
         relabel_configs:
           - source_labels: [__meta_kubernetes_pod_label_app]
             target_label: job
@@ -251,6 +254,7 @@ data:
             regex: (.+);(.+)
             replacement: /var/log/pods/${1}/*.log
             target_label: __path__
+
 ---
 # Grafana
 apiVersion: apps/v1
