@@ -141,7 +141,7 @@ spec:
     app: loki
 
 ---
-# Promtail
+# Promtail DaemonSet
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -159,11 +159,17 @@ spec:
       labels:
         app: promtail
     spec:
-      serviceAccountName: promtail
+      serviceAccountName: promtail       # corrected from serviceAccount
       containers:
         - name: promtail
-          image: grafana/promtail:2.9.0
-          args: ["-config.file=/etc/promtail/config.yaml"]
+          image: grafana/promtail:3.2.1  # pinned image version is good
+          args:
+            - -config.file=/etc/promtail/config.yaml
+          env:
+            - name: HOSTNAME              # needed for kubernetes_sd_configs
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           volumeMounts:
             - name: config
               mountPath: /etc/promtail
@@ -196,6 +202,7 @@ spec:
             path: /var/lib/containerd
 
 ---
+# Promtail ConfigMap
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -213,13 +220,12 @@ data:
       filename: /tmp/positions.yaml
 
     clients:
-      - url: http://loki:3100/loki/api/v1/push
+      - url: http://loki:3100/loki/api/v1/push  
 
     scrape_configs:
       - job_name: system
         static_configs:
-          - targets:
-              - localhost
+          - targets: ["localhost"]
             labels:
               job: varlogs
               __path__: /var/log/*.log
@@ -227,6 +233,8 @@ data:
       - job_name: kubernetes-pods
         kubernetes_sd_configs:
           - role: pod
+        pipeline_stages:
+          - docker: {}         
         relabel_configs:
           - source_labels: [__meta_kubernetes_pod_label_app]
             target_label: job
@@ -243,7 +251,6 @@ data:
             regex: (.+);(.+)
             replacement: /var/log/pods/${1}/*.log
             target_label: __path__
-
 ---
 # Grafana
 apiVersion: apps/v1
