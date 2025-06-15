@@ -252,17 +252,19 @@ data:
           - source_labels: [__meta_kubernetes_pod_node_name]
             target_label: node
 
-          # Construct __path__ for container logs in /var/log/pods/<podUID>/<container>/*.log
+          # Construct __path__ for container logs in /var/log/pods/<namespace>_<podname>_<podUID>/<container>/*.log
           - action: replace
-            source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
-            regex: (.+);(.+)
-            replacement: /var/log/pods/${1}/${2}/*.log
+            source_labels:
+              - __meta_kubernetes_namespace
+              - __meta_kubernetes_pod_name
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_container_name
+            regex: (.+);(.+);(.+);(.+)
+            replacement: /var/log/pods/${1}_${2}_${3}/${4}/*.log
             target_label: __path__
 
           # Keep all pods (don't drop any)
           - action: keep
-            # no source_labels or regex means keep all discovered pods
-
 
 ---
 # Grafana
