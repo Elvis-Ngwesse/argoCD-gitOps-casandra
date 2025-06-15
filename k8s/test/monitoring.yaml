@@ -160,6 +160,9 @@ spec:
         app: promtail
     spec:
       serviceAccountName: promtail
+      # Optional: tolerations for node taints, if needed
+      # tolerations:
+      #   - operator: "Exists"
       containers:
         - name: promtail
           image: grafana/promtail:3.2.1
@@ -205,6 +208,7 @@ spec:
             path: /var/lib/containerd
 
 ---
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -238,11 +242,11 @@ data:
         pipeline_stages:
           - docker: {}
         relabel_configs:
-          # Set job to pod name (instead of app label, which might be missing)
+          # Set job to pod name
           - source_labels: [__meta_kubernetes_pod_name]
             target_label: job
 
-          # Copy namespace, pod, container, and node labels for metadata
+          # Copy metadata labels
           - source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
           - source_labels: [__meta_kubernetes_pod_name]
@@ -252,19 +256,19 @@ data:
           - source_labels: [__meta_kubernetes_pod_node_name]
             target_label: node
 
-          # Construct __path__ for container logs in /var/log/pods/<namespace>_<podname>_<podUID>/<container>/*.log
+          # Fix regex: use (.*) and verify separator is ;
           - action: replace
             source_labels:
               - __meta_kubernetes_namespace
               - __meta_kubernetes_pod_name
               - __meta_kubernetes_pod_uid
               - __meta_kubernetes_container_name
-            regex: (.+);(.+);(.+);(.+)
+            regex: (.*);(.*);(.*);(.*)
             replacement: /var/log/pods/${1}_${2}_${3}/${4}/*.log
             target_label: __path__
 
-          # Keep all pods (don't drop any)
-          - action: keep
+          # Remove 'action: keep' unless filtering required
+
 
 ---
 # Grafana
