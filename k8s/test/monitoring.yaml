@@ -60,10 +60,10 @@ data:
               node_name: "${HOSTNAME}"
               __path__: /var/log/kubernetes/audit/audit.log
       - job_name: kubernetes-pods
-        pipeline_stages:
-          - cri: {}
         kubernetes_sd_configs:
           - role: pod
+        pipeline_stages:
+          - cri: {}
         relabel_configs:
           - source_labels: [__job__]
             action: replace
@@ -102,9 +102,10 @@ data:
             action: replace
             target_label: container
           - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
-            separator: -
-            replacement: /var/log/containers/*$1*$2*.log
+            separator: "-"
             target_label: __path__
+            replacement: /var/log/containers/*$1*$2*.log
+
 ---
 apiVersion: apps/v1
 kind: DaemonSet
