@@ -197,6 +197,12 @@ spec:
           volumeMounts:
             - name: es-data
               mountPath: /usr/share/elasticsearch/data
+          volumes:
+            - name: es-data
+              hostPath:
+                path: /mnt/data/es-data
+                type: DirectoryOrCreate
+
   volumeClaimTemplates:
     - metadata:
         name: es-data
