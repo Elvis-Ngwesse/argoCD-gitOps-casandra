@@ -25,7 +25,6 @@ docker run -d --name customer-generator \
 ```
 
 Visit: [http://localhost:5002](http://localhost:5002)
-
 ---
 
 ## 📊 Query MongoDB Locally

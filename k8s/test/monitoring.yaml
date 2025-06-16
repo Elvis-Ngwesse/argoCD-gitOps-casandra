@@ -1,3 +1,4 @@
+
 # ------------------------------
 # Promtail ServiceAccount & RBAC
 # ------------------------------
@@ -243,28 +244,62 @@ data:
           - source_labels: [__meta_kubernetes_namespace]
             regex: test|logging
             action: keep
-
-          # Set useful metadata
-          - source_labels: [__meta_kubernetes_namespace]
-            target_label: namespace
-          - source_labels: [__meta_kubernetes_pod_name]
-            target_label: pod
-          - source_labels: [__meta_kubernetes_container_name]
-            target_label: container
-          - source_labels: [__meta_kubernetes_pod_node_name]
-            target_label: node
-          - source_labels: [__meta_kubernetes_pod_name]
+          - source_labels: [__job__]
+            action: replace
             target_label: job
-
-          # Set __path__ to /var/log/containers/<pod>_<namespace>_<container>-*.log
-          - action: replace
-            source_labels:
-              - __meta_kubernetes_pod_name
-              - __meta_kubernetes_namespace
-              - __meta_kubernetes_container_name
-            regex: (.+);(.+);(.+)
-            replacement: /var/log/containers/\1_\2_\3-*.log
+            replacement: kubernetes-pods
+          - source_labels: [__meta_kubernetes_pod_controller_name]
+            regex: (.+)
+            action: replace
+            target_label: __tmp_controller_name
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            regex: (.+)
+            action: replace
+            target_label: app
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: (.+)
+            action: replace
+            target_label: app
+          - source_labels: [__tmp_controller_name]
+            regex: (.+)
+            action: replace
+            target_label: app
+          - source_labels: [__meta_kubernetes_pod_name]
+            regex: (.+)
+            action: replace
+            target_label: app
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_instance, __meta_kubernetes_pod_label_release]
+            regex: (.+)
+            action: replace
+            target_label: instance
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+            regex: (.+)
+            action: replace
+            target_label: component
+          - source_labels: [__meta_kubernetes_pod_label_component]
+            regex: (.+)
+            action: replace
+            target_label: component
+          - source_labels: [__meta_kubernetes_node_name]
+            action: replace
+            target_label: node_name
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [namespace, app]
+            separator: /
+            action: replace
+            target_label: controller
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            action: replace
+            target_label: container
+          - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+            separator: "_"
             target_label: __path__
+            replacement: /var/log/containers/${1}_${2}.log
 
 ---
 # Grafana
