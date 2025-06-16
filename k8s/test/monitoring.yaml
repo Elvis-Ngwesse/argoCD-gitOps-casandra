@@ -154,6 +154,7 @@ spec:
       containers:
         - name: promtail
           image: grafana/promtail:2.9.5
+          command: ["/usr/bin/promtail"]
           args:
             - -config.file=/promtail/config/promtail.yaml
             - -config.expand-env=true
@@ -227,50 +228,6 @@ metadata:
   name: promtail
   namespace: logging
 ---
----
-# ------------------------------
-# Loki Deployment
-# ------------------------------
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: loki
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: loki
-  template:
-    metadata:
-      labels:
-        app: loki
-    spec:
-      containers:
-        - name: loki
-          image: grafana/loki:2.9.0
-          args: ["-config.file=/etc/loki/config.yaml"]
-          ports:
-            - containerPort: 3100
-          volumeMounts:
-            - name: config
-              mountPath: /etc/loki
-            - name: wal
-              mountPath: /wal
-            - name: loki-data
-              mountPath: /loki
-      volumes:
-        - name: config
-          configMap:
-            name: loki-config
-        - name: wal
-          emptyDir: {}
-        - name: loki-data
-          emptyDir: {}
-
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -316,7 +273,47 @@ data:
     table_manager:
       retention_deletes_enabled: true
       retention_period: 24h
-
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      containers:
+        - name: loki
+          image: grafana/loki:2.9.0
+          command: ["/usr/bin/loki"]
+          args: ["-config.file=/etc/loki/config.yaml"]
+          ports:
+            - containerPort: 3100
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+              readOnly: true
+            - name: wal
+              mountPath: /wal
+            - name: loki-data
+              mountPath: /loki
+      volumes:
+        - name: config
+          configMap:
+            name: loki-config
+        - name: wal
+          emptyDir: {}
+        - name: loki-data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -331,12 +328,25 @@ spec:
       targetPort: 3100
   selector:
     app: loki
-
 ---
----
-
----
-
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+  labels:
+    grafana_datasource: "1"
+data:
+  loki.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki:3100
+        isDefault: true
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -393,22 +403,3 @@ spec:
       targetPort: 3000
       protocol: TCP
       name: http
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-datasources
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
-  labels:
-    grafana_datasource: "1"
-data:
-  loki.yaml: |
-    apiVersion: 1
-    datasources:
-      - name: Loki
-        type: loki
-        access: proxy
-        url: http://loki:3100
-        isDefault: true
