@@ -295,6 +295,7 @@ spec:
         runAsUser: 10001
         runAsGroup: 10001
         fsGroup: 10001
+        fsGroupChangePolicy: Always
       containers:
         - name: loki
           image: grafana/loki:2.9.5
