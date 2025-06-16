@@ -248,7 +248,7 @@ Download test results from the MinIO web interface.
 
 ## ⌚ Metrics + Grafana for Visibility
 - run the command
-    minikube service grafana -n test --url
+    minikube service grafana -n logging --url
 - go to the displayed url
 - username: admin
 - password: admin

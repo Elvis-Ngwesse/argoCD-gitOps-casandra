@@ -175,6 +175,9 @@ spec:
               mountPropagation: HostToContainer
               name: varlogs
               readOnly: true
+            - mountPath: /var/lib/pods
+              name: podlogs
+              readOnly: true
       tolerations:
         - effect: NoSchedule
           operator: Exists
@@ -189,6 +192,10 @@ spec:
         - name: varlogs
           hostPath:
             path: /var/log
+            type: Directory
+        - name: podlogs
+          hostPath:
+            path: /var/lib/pods
             type: Directory
 ---
 apiVersion: rbac.authorization.k8s.io/v1
