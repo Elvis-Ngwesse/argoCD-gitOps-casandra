@@ -189,9 +189,6 @@ spec:
           securityContext:
             runAsUser: 0
           volumeMounts:
-            - mountPath: /promtail/tls
-              name: tls
-              readOnly: true
             - mountPath: /promtail/run
               name: run
             - mountPath: /var/log
