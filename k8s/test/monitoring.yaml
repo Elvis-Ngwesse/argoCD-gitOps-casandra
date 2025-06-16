@@ -1,315 +1,214 @@
-
-# ------------------------------
-# Promtail ServiceAccount & RBAC
-# ------------------------------
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: promtail
-  namespace: test
+  name: filebeat
+  namespace: elastic
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "3"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: promtail-pod-reader
+  name: filebeat
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "3"
 rules:
   - apiGroups: [""]
-    resources: ["pods", "namespaces"]
-    verbs: ["get", "list", "watch"]
-
+    resources:
+      - pods
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: promtail-pod-reader-binding
+  name: filebeat
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "3"
 subjects:
   - kind: ServiceAccount
-    name: promtail
-    namespace: test
+    name: filebeat
+    namespace: elastic
 roleRef:
   kind: ClusterRole
-  name: promtail-pod-reader
+  name: filebeat
   apiGroup: rbac.authorization.k8s.io
----
-# ------------------------------
-# Loki Deployment
-# ------------------------------
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: loki
-  namespace: test
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: loki
-  template:
-    metadata:
-      labels:
-        app: loki
-    spec:
-      containers:
-        - name: loki
-          image: grafana/loki:2.9.0
-          args: ["-config.file=/etc/loki/config.yaml"]
-          ports:
-            - containerPort: 3100
-          volumeMounts:
-            - name: config
-              mountPath: /etc/loki
-            - name: wal
-              mountPath: /wal
-            - name: loki-data
-              mountPath: /loki
-      volumes:
-        - name: config
-          configMap:
-            name: loki-config
-        - name: wal
-          emptyDir: {}
-        - name: loki-data
-          emptyDir: {}
-
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: loki-config
-  namespace: test
+  name: filebeat-config
+  namespace: elastic
   annotations:
-    argocd.argoproj.io/sync-wave: "6"
+    argocd.argoproj.io/sync-wave: "5"
 data:
-  config.yaml: |
-    auth_enabled: false
-    server:
-      http_listen_port: 3100
-    ingester:
-      wal:
-        enabled: true
-        dir: /wal
-      lifecycler:
-        ring:
-          kvstore:
-            store: inmemory
-          replication_factor: 1
-        final_sleep: 0s
-      chunk_idle_period: 3m
-      chunk_retain_period: 1m
-    schema_config:
-      configs:
-        - from: 2024-01-01
-          store: boltdb
-          object_store: filesystem
-          schema: v11
-          index:
-            prefix: index_
-            period: 24h
-    storage_config:
-      boltdb:
-        directory: /loki/index
-      filesystem:
-        directory: /loki/chunks
-    limits_config:
-      enforce_metric_name: false
-    chunk_store_config:
-      max_look_back_period: 0s
-    table_manager:
-      retention_deletes_enabled: true
-      retention_period: 24h
+  filebeat.yml: |-
+    filebeat.inputs:
+    - type: container
+      paths:
+        - /var/log/containers/*.log
+
+    processors:
+    - add_cloud_metadata: ~
+
+    output.elasticsearch:
+      hosts: ["http://elasticsearch.elastic.svc.cluster.local:9200"]
 
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: loki
-  namespace: test
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
-spec:
-  ports:
-    - port: 3100
-      targetPort: 3100
-  selector:
-    app: loki
-
----
-# Promtail DaemonSet
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: promtail
-  namespace: test
+  name: filebeat
+  namespace: elastic
   annotations:
     argocd.argoproj.io/sync-wave: "6"
-    restart.timestamp: "2025-06-13T06:55:00"
 spec:
   selector:
     matchLabels:
-      app: promtail
+      app: filebeat
   template:
     metadata:
       labels:
-        app: promtail
+        app: filebeat
     spec:
-      serviceAccountName: promtail
+      serviceAccountName: filebeat
       containers:
-        - name: promtail
-          image: grafana/promtail:3.2.1
-          args:
-            - -config.file=/etc/promtail/config.yaml
-            - -config.expand-env
-            - -log.level=debug         # <-- Enable debug logging
-          env:
-            - name: LOKI_URL
-              value: http://loki:3100/loki/api/v1/push
-            - name: HOSTNAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
+        - name: filebeat
+          image: docker.elastic.co/beats/filebeat:8.7.1
+          args: ["-c", "/etc/filebeat.yml"]
           volumeMounts:
             - name: config
-              mountPath: /etc/promtail
+              mountPath: /etc/filebeat.yml
+              subPath: filebeat.yml
             - name: varlog
               mountPath: /var/log
+              readOnly: true
             - name: varlibdockercontainers
               mountPath: /var/lib/docker/containers
               readOnly: true
-            - name: pods
-              mountPath: /var/log/pods
-              readOnly: true
-            - name: containers
-              mountPath: /var/lib/containerd
+            - name: varrunkubeletpods
+              mountPath: /var/run/docker.sock
               readOnly: true
       volumes:
         - name: config
           configMap:
-            name: promtail-config
+            name: filebeat-config
         - name: varlog
           hostPath:
             path: /var/log
         - name: varlibdockercontainers
           hostPath:
             path: /var/lib/docker/containers
-        - name: pods
+        - name: varrunkubeletpods
           hostPath:
-            path: /var/log/pods
-        - name: containers
-          hostPath:
-            path: /var/lib/containerd
-
+            path: /var/run/docker.sock
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: promtail-config
-  namespace: test
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
-data:
-  config.yaml: |
-    server:
-      http_listen_port: 9080
-      grpc_listen_port: 0
-
-    positions:
-      filename: /tmp/positions.yaml
-
-    clients:
-      - url: ${LOKI_URL}
-
-    scrape_configs:
-      - job_name: system
-        static_configs:
-          - targets: ["localhost"]
-            labels:
-              job: varlogs
-              __path__: /var/log/*.log
-
-      - job_name: kubernetes-pods
-        pipeline_stages:
-          - docker: {}   # or cri: {} depending on your container runtime
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          # Keep only pods in test and logging namespaces
-          - source_labels: [__meta_kubernetes_namespace]
-            regex: test|logging
-            action: keep
-
-          # Set Kubernetes metadata as labels
-          - source_labels: [__meta_kubernetes_namespace]
-            target_label: namespace
-          - source_labels: [__meta_kubernetes_pod_name]
-            target_label: pod
-          - source_labels: [__meta_kubernetes_container_name]
-            target_label: container
-          - source_labels: [__meta_kubernetes_pod_node_name]
-            target_label: node
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            target_label: app
-            regex: (.+)
-            replacement: $1
-            action: replace
-          - source_labels: [__meta_kubernetes_pod_name]
-            target_label: job
-
-          # Set the log file path for scraping
-          - action: replace
-            source_labels:
-              - __meta_kubernetes_pod_name
-              - __meta_kubernetes_namespace
-              - __meta_kubernetes_container_name
-            regex: (.+);(.+);(.+)
-            replacement: /var/log/containers/\1_\2_\3-*.log
-            target_label: __path__
-
----
-# Grafana
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: grafana
-  namespace: test
+  name: kibana
+  namespace: elastic
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: grafana
+      app: kibana
   template:
     metadata:
       labels:
-        app: grafana
+        app: kibana
     spec:
       containers:
-        - name: grafana
-          image: grafana/grafana:latest
+        - name: kibana
+          image: docker.elastic.co/kibana/kibana:8.7.1
+          env:
+            - name: ELASTICSEARCH_HOSTS
+              value: http://elasticsearch.elastic.svc.cluster.local:9200
           ports:
-            - containerPort: 3000
-
+            - containerPort: 5601
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: grafana
-  namespace: test
+  name: kibana
+  namespace: elastic
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 spec:
-  type: NodePort
   selector:
-    app: grafana
+    app: kibana
   ports:
-    - port: 80
-      targetPort: 3000
-      nodePort: 30091
+    - protocol: TCP
+      port: 5601
+      targetPort: 5601
+  type: NodePort  # Or LoadBalancer if your cluster supports it
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: elastic
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  ports:
+    - port: 9200
+      name: http
+  clusterIP: None
+  selector:
+    app: elasticsearch
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+  namespace: elastic
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  serviceName: elasticsearch
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.7.1
+          env:
+            - name: discovery.type
+              value: single-node
+            - name: ES_JAVA_OPTS
+              value: "-Xms512m -Xmx512m"
+          ports:
+            - containerPort: 9200
+              name: http
+            - containerPort: 9300
+              name: transport
+          volumeMounts:
+            - name: es-data
+              mountPath: /usr/share/elasticsearch/data
+  volumeClaimTemplates:
+    - metadata:
+        name: es-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: elastic
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
