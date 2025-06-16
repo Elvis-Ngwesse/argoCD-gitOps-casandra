@@ -291,7 +291,9 @@ spec:
       labels:
         app: loki
     spec:
-      securityContext:            # ✅ Add this block
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
         fsGroup: 10001
       containers:
         - name: loki
@@ -305,9 +307,6 @@ spec:
               mountPath: /etc/loki
             - name: storage
               mountPath: /loki
-          securityContext:        # ✅ Optional override, but no need to run as root
-            runAsUser: 10001
-            runAsGroup: 10001
       volumes:
         - name: config
           configMap:
@@ -320,7 +319,6 @@ spec:
         resources:
           requests:
             storage: 5Gi
-
 ---
 apiVersion: v1
 kind: Service
