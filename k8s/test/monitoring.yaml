@@ -1,248 +1,94 @@
----
+# ------------------------------
+# Promtail ServiceAccount & RBAC
+# ------------------------------
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: logging
-  name: promtail
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
-data:
-  promtail.yaml: |
-    server:
-      http_listen_port: 9080
-      grpc_listen_port: 0
-
-    positions:
-      filename: /promtail/run/positions.yaml
-
-    clients:
-      - url: http://loki:3100/loki/api/v1/push
-        # SUGGESTION: Consider using HTTPS with proper TLS config for secure transmission.
-
-    scrape_configs:
-      - job_name: varlogs
-        static_configs:
-          - targets:
-              - localhost
-            labels:
-              job: varlogs
-              node_name: "${HOSTNAME}"
-              __path__: /var/log/*log
-          - targets:
-              - localhost
-            labels:
-              job: varlogs
-              node_name: "${HOSTNAME}"
-              __path__: /var/log/apt/*log
-          - targets:
-              - localhost
-            labels:
-              job: varlogs
-              node_name: "${HOSTNAME}"
-              __path__: /var/log/unattended-upgrades/*log
-        pipeline_stages:
-          - drop:
-              expression: 'Failed to set up mount unit: Invalid argument$'
-          - drop:
-              expression: 'message repeated [0-9]+ times: \[ Failed to set up mount unit: Invalid argument\]$'
-      - job_name: kubernetes-audit
-        static_configs:
-          - targets:
-              - localhost
-            labels:
-              job: kubernetes-audit
-              node_name: "${HOSTNAME}"
-              __path__: /var/log/kubernetes/audit/audit.log
-        # SUGGESTION: Ensure audit logging is enabled in Kubernetes API server config.
-      - job_name: kubernetes-pods
-        kubernetes_sd_configs:
-          - role: pod
-        pipeline_stages:
-          - cri: {}
-        relabel_configs:
-          - source_labels: [__job__]
-            action: replace
-            target_label: job
-            replacement: kubernetes-pods
-          - source_labels: [__meta_kubernetes_pod_controller_name]
-            regex: (.+)
-            action: replace
-            target_label: __tmp_controller_name
-          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
-            regex: (.+)
-            action: replace
-            target_label: app
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            regex: (.+)
-            action: replace
-            target_label: app
-          - source_labels: [__tmp_controller_name]
-            regex: (.+)
-            action: replace
-            target_label: app
-          - source_labels: [__meta_kubernetes_pod_name]
-            regex: (.+)
-            action: replace
-            target_label: app
-          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_instance, __meta_kubernetes_pod_label_release]
-            regex: (.+)
-            action: replace
-            target_label: instance
-          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
-            regex: (.+)
-            action: replace
-            target_label: component
-          - source_labels: [__meta_kubernetes_pod_label_component]
-            regex: (.+)
-            action: replace
-            target_label: component
-          - source_labels: [__meta_kubernetes_node_name]
-            action: replace
-            target_label: node_name
-          - source_labels: [__meta_kubernetes_namespace]
-            action: replace
-            target_label: namespace
-          - source_labels: [namespace, app]
-            separator: /
-            action: replace
-            target_label: controller
-          - source_labels: [__meta_kubernetes_pod_name]
-            action: replace
-            target_label: pod
-          - source_labels: [__meta_kubernetes_pod_container_name]
-            action: replace
-            target_label: container
-          - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
-            separator: "_"
-            target_label: __path__
-            replacement: /var/log/containers/${1}_${2}.log
-
----
-apiVersion: apps/v1
-kind: DaemonSet
+kind: ServiceAccount
 metadata:
   name: promtail
-  namespace: logging
+  namespace: test
   annotations:
-    argocd.argoproj.io/sync-wave: "6"
-spec:
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
-  selector:
-    matchLabels:
-      app: promtail
-  template:
-    metadata:
-      labels:
-        app: promtail
-    spec:
-      serviceAccountName: promtail
-      securityContext:
-        runAsNonRoot: false  # SUGGESTION: Set to `true` and adjust `runAsUser` if possible for security.
-      containers:
-        - name: promtail
-          image: grafana/promtail:2.9.5
-          command: ["/usr/bin/promtail"]
-          args:
-            - -config.file=/promtail/config/promtail.yaml
-            - -config.expand-env=true
-          env:
-            - name: HOSTNAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-          securityContext:
-            runAsUser: 0  # SUGGESTION: Minimize privilege; avoid root where possible.
-          volumeMounts:
-            - mountPath: /promtail/config
-              name: config
-              readOnly: true
-            - mountPath: /promtail/run
-              name: run
-            - mountPath: /var/log
-              mountPropagation: HostToContainer
-              name: varlogs
-              readOnly: true
-            - mountPath: /var/log/containers
-              name: containerlogs
-              readOnly: true
-      tolerations:
-        - effect: NoSchedule
-          operator: Exists
-      volumes:
-        - name: config
-          configMap:
-            name: promtail
-        - name: run
-          hostPath:
-            path: /run/promtail
-            type: DirectoryOrCreate
-        - name: varlogs
-          hostPath:
-            path: /var/log
-            type: Directory
-        - name: containerlogs
-          hostPath:
-            path: /var/log/containers
-            type: Directory
+    argocd.argoproj.io/sync-wave: "5"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: promtail-pod-reader
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces"]
+    verbs: ["get", "list", "watch"]
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: promtail
+  name: promtail-pod-reader-binding
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 subjects:
   - kind: ServiceAccount
     name: promtail
-    namespace: logging
+    namespace: test
 roleRef:
   kind: ClusterRole
-  name: promtail
+  name: promtail-pod-reader
   apiGroup: rbac.authorization.k8s.io
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+# ------------------------------
+# Loki Deployment
+# ------------------------------
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: promtail
+  name: loki
+  namespace: test
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
-rules:
-  - apiGroups: [""]
-    resources:
-      - namespaces
-      - pods
-    verbs:
-      - get
-      - watch
-      - list
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: promtail
-  namespace: logging
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      containers:
+        - name: loki
+          image: grafana/loki:2.9.0
+          args: ["-config.file=/etc/loki/config.yaml"]
+          ports:
+            - containerPort: 3100
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+            - name: wal
+              mountPath: /wal
+            - name: loki-data
+              mountPath: /loki
+      volumes:
+        - name: config
+          configMap:
+            name: loki-config
+        - name: wal
+          emptyDir: {}
+        - name: loki-data
+          emptyDir: {}
+
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: loki-config
-  namespace: logging
+  namespace: test
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 data:
   config.yaml: |
-    auth_enabled: false  # SUGGESTION: Set to `true` and configure auth for production.
+    auth_enabled: false
     server:
       http_listen_port: 3100
     ingester:
@@ -278,53 +124,13 @@ data:
     table_manager:
       retention_deletes_enabled: true
       retention_period: 24h
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: loki
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: loki
-  template:
-    metadata:
-      labels:
-        app: loki
-    spec:
-      containers:
-        - name: loki
-          image: grafana/loki:2.9.0
-          command: ["/usr/bin/loki"]
-          args: ["-config.file=/etc/loki/config.yaml"]
-          ports:
-            - containerPort: 3100
-          volumeMounts:
-            - name: config
-              mountPath: /etc/loki
-              readOnly: true
-            - name: wal
-              mountPath: /wal
-            - name: loki-data
-              mountPath: /loki
-      volumes:
-        - name: config
-          configMap:
-            name: loki-config
-        - name: wal
-          emptyDir: {}
-        - name: loki-data
-          emptyDir: {}
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: loki
-  namespace: logging
+  namespace: test
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 spec:
@@ -333,32 +139,140 @@ spec:
       targetPort: 3100
   selector:
     app: loki
+
+---
+# Promtail DaemonSet
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+    restart.timestamp: "2025-06-13T06:55:00"
+spec:
+  selector:
+    matchLabels:
+      app: promtail
+  template:
+    metadata:
+      labels:
+        app: promtail
+    spec:
+      serviceAccountName: promtail
+      containers:
+        - name: promtail
+          image: grafana/promtail:3.2.1
+          args:
+            - -config.file=/etc/promtail/config.yaml
+            - -config.expand-env
+            - -log.level=debug         # <-- Enable debug logging
+          env:
+            - name: LOKI_URL
+              value: http://loki:3100/loki/api/v1/push
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: varlog
+              mountPath: /var/log
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: pods
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: containers
+              mountPath: /var/lib/containerd
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: promtail-config
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: pods
+          hostPath:
+            path: /var/log/pods
+        - name: containers
+          hostPath:
+            path: /var/lib/containerd
+
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: grafana-datasources
-  namespace: logging
+  name: promtail-config
+  namespace: test
   annotations:
     argocd.argoproj.io/sync-wave: "6"
-  labels:
-    grafana_datasource: "1"
 data:
-  loki.yaml: |
-    apiVersion: 1
-    datasources:
-      - name: Loki
-        type: loki
-        access: proxy
-        url: http://loki:3100
-        isDefault: true
-        # SUGGESTION: Ensure Grafana has access to Loki service in same namespace.
+  config.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: ${LOKI_URL}
+
+    scrape_configs:
+      - job_name: system
+        static_configs:
+          - targets: ["localhost"]
+            labels:
+              job: varlogs
+              __path__: /var/log/*.log
+
+      - job_name: kubernetes-pods
+        pipeline_stages:
+          - docker: {}  # or cri: {} depending on your container runtime
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          # Keep only test and logging namespaces (updated here)
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: test|logging
+            action: keep
+
+          # Set useful metadata
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_container_name]
+            target_label: container
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: job
+
+          # Set __path__ to /var/log/containers/<pod>_<namespace>_<container>-*.log
+          - action: replace
+            source_labels:
+              - __meta_kubernetes_pod_name
+              - __meta_kubernetes_namespace
+              - __meta_kubernetes_container_name
+            regex: (.+);(.+);(.+)
+            replacement: /var/log/containers/\1_\2_\3-*.log
+            target_label: __path__
+
 ---
+# Grafana
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  namespace: logging
+  namespace: test
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 spec:
@@ -373,40 +287,23 @@ spec:
     spec:
       containers:
         - name: grafana
-          image: grafana/grafana:10.4.1
+          image: grafana/grafana:latest
           ports:
             - containerPort: 3000
-          env:
-            - name: GF_SECURITY_ADMIN_USER
-              value: admin
-            - name: GF_SECURITY_ADMIN_PASSWORD
-              value: admin
-              # SUGGESTION: Use Kubernetes Secret for admin credentials.
-          volumeMounts:
-            - name: storage
-              mountPath: /var/lib/grafana
-            - name: datasources
-              mountPath: /etc/grafana/provisioning/datasources
-      volumes:
-        - name: storage
-          emptyDir: {}
-        - name: datasources
-          configMap:
-            name: grafana-datasources
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: grafana
-  namespace: logging
+  namespace: test
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app: grafana
   ports:
     - port: 80
       targetPort: 3000
-      protocol: TCP
-      name: http
+      nodePort: 30091
