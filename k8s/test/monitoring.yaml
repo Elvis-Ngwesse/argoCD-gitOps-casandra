@@ -263,6 +263,8 @@ data:
         shared_store: filesystem
       filesystem:
         directory: /loki/chunks
+    wal:
+      dir: /loki/wal
     limits_config:
       enforce_metric_name: false
       reject_old_samples: true
@@ -296,6 +298,19 @@ spec:
         runAsGroup: 10001
         fsGroup: 10001
         fsGroupChangePolicy: Always
+      initContainers:
+        - name: init-permissions
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /loki/wal && chown -R 10001:10001 /loki
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: storage
+              mountPath: /loki
       containers:
         - name: loki
           image: grafana/loki:2.9.5
@@ -314,7 +329,6 @@ spec:
             name: loki-config
         - name: storage
           emptyDir: {}
-
 ---
 apiVersion: v1
 kind: Service
