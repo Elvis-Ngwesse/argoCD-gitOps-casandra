@@ -50,7 +50,7 @@ data:
           - drop:
               expression: 'Failed to set up mount unit: Invalid argument$'
           - drop:
-              expression: 'message repeated [0-9]+ times: \\[ Failed to set up mount unit: Invalid argument\\]$'
+              expression: 'message repeated [0-9]+ times: \[ Failed to set up mount unit: Invalid argument\]$'
       - job_name: systemd
         journal:
           json: false
@@ -113,42 +113,33 @@ data:
             target_label: component
           - action: replace
             source_labels:
-            - __meta_kubernetes_pod_node_name
+              - __meta_kubernetes_pod_node_name
             target_label: node_name
           - action: replace
             source_labels:
-            - __meta_kubernetes_namespace
+              - __meta_kubernetes_namespace
             target_label: namespace
           - action: replace
             replacement: $1
             separator: /
             source_labels:
-            - namespace
-            - app
+              - namespace
+              - app
             target_label: controller
           - action: replace
             source_labels:
-            - __meta_kubernetes_pod_name
+              - __meta_kubernetes_pod_name
             target_label: pod
           - action: replace
             source_labels:
-            - __meta_kubernetes_pod_container_name
+              - __meta_kubernetes_pod_container_name
             target_label: container
           - action: replace
             replacement: /var/log/pods/*$1/*.log
             separator: /
             source_labels:
-            - __meta_kubernetes_pod_uid
-            - __meta_kubernetes_pod_container_name
-            target_label: __path__
-          - action: replace
-            regex: true/(.*)
-            replacement: /var/log/pods/*$1/*.log
-            separator: /
-            source_labels:
-            - __meta_kubernetes_pod_annotationpresent_kubernetes_io_config_hash
-            - __meta_kubernetes_pod_annotation_kubernetes_io_config_hash
-            - __meta_kubernetes_pod_container_name
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
             target_label: __path__
 ---
 apiVersion: apps/v1
@@ -189,6 +180,9 @@ spec:
           securityContext:
             runAsUser: 0
           volumeMounts:
+            - mountPath: /promtail/config
+              name: config
+              readOnly: true
             - mountPath: /promtail/run
               name: run
             - mountPath: /var/log
@@ -205,11 +199,11 @@ spec:
         - name: run
           hostPath:
             path: /run/promtail
-            type: "DirectoryOrCreate"
+            type: DirectoryOrCreate
         - name: varlogs
           hostPath:
             path: /var/log
-            type: ""
+            type: Directory
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -233,7 +227,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 rules:
-  - apiGroups: [""] # "" indicates the core API group
+  - apiGroups: [""]
     resources:
       - namespaces
       - pods
@@ -248,7 +242,6 @@ metadata:
   name: promtail
   namespace: logging
 ---
-# --- Loki ConfigMap ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -295,7 +288,6 @@ data:
       retention_deletes_enabled: true
       retention_period: 7d
 ---
-# --- Loki StatefulSet ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -334,12 +326,11 @@ spec:
     - metadata:
         name: storage
       spec:
-        accessModes: [ "ReadWriteOnce" ]
+        accessModes: ["ReadWriteOnce"]
         resources:
           requests:
             storage: 5Gi
 ---
-# --- Loki Service ---
 apiVersion: v1
 kind: Service
 metadata:
@@ -356,7 +347,6 @@ spec:
       protocol: TCP
       name: http
 ---
-# --- Grafana Deployment ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -396,7 +386,6 @@ spec:
           configMap:
             name: grafana-datasources
 ---
-# --- Grafana Service ---
 apiVersion: v1
 kind: Service
 metadata:
@@ -414,7 +403,6 @@ spec:
       protocol: TCP
       name: http
 ---
-# --- Grafana Loki Datasource ConfigMap ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -433,4 +421,3 @@ data:
         access: proxy
         url: http://loki:3100
         isDefault: true
-
