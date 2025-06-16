@@ -51,21 +51,6 @@ data:
               expression: 'Failed to set up mount unit: Invalid argument$'
           - drop:
               expression: 'message repeated [0-9]+ times: \[ Failed to set up mount unit: Invalid argument\]$'
-      - job_name: systemd
-        journal:
-          json: false
-          labels:
-            job: systemd
-            node_name: "${HOSTNAME}"
-          path: /var/log/journal
-        relabel_configs:
-          - source_labels:
-              - __journal__systemd_unit
-            action: replace
-            target_label: unit
-        pipeline_stages:
-          - drop:
-              expression: '^Failed to set up mount unit: Invalid argument$'
       - job_name: kubernetes-audit
         static_configs:
           - targets:
@@ -316,7 +301,7 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/loki
-            - name: storage
+            - name: loki-storage
               mountPath: /loki
       volumes:
         - name: config
@@ -324,7 +309,7 @@ spec:
             name: loki-config
   volumeClaimTemplates:
     - metadata:
-        name: storage
+        name: loki-storage
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
