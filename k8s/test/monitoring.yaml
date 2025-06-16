@@ -236,70 +236,41 @@ data:
 
       - job_name: kubernetes-pods
         pipeline_stages:
-          - docker: {}  # or cri: {} depending on your container runtime
+          - docker: {}   # or cri: {} depending on your container runtime
         kubernetes_sd_configs:
           - role: pod
         relabel_configs:
-          # Keep only test and logging namespaces (updated here)
+          # Keep only pods in test and logging namespaces
           - source_labels: [__meta_kubernetes_namespace]
             regex: test|logging
             action: keep
-          - source_labels: [__job__]
-            action: replace
-            target_label: job
-            replacement: kubernetes-pods
-          - source_labels: [__meta_kubernetes_pod_controller_name]
-            regex: (.+)
-            action: replace
-            target_label: __tmp_controller_name
-          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
-            regex: (.+)
-            action: replace
-            target_label: app
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            regex: (.+)
-            action: replace
-            target_label: app
-          - source_labels: [__tmp_controller_name]
-            regex: (.+)
-            action: replace
-            target_label: app
-          - source_labels: [__meta_kubernetes_pod_name]
-            regex: (.+)
-            action: replace
-            target_label: app
-          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_instance, __meta_kubernetes_pod_label_release]
-            regex: (.+)
-            action: replace
-            target_label: instance
-          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
-            regex: (.+)
-            action: replace
-            target_label: component
-          - source_labels: [__meta_kubernetes_pod_label_component]
-            regex: (.+)
-            action: replace
-            target_label: component
-          - source_labels: [__meta_kubernetes_node_name]
-            action: replace
-            target_label: node_name
+
+          # Set Kubernetes metadata as labels
           - source_labels: [__meta_kubernetes_namespace]
-            action: replace
             target_label: namespace
-          - source_labels: [namespace, app]
-            separator: /
-            action: replace
-            target_label: controller
           - source_labels: [__meta_kubernetes_pod_name]
-            action: replace
             target_label: pod
-          - source_labels: [__meta_kubernetes_pod_container_name]
-            action: replace
+          - source_labels: [__meta_kubernetes_container_name]
             target_label: container
-          - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
-            separator: "_"
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+            regex: (.+)
+            replacement: $1
+            action: replace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: job
+
+          # Set the log file path for scraping
+          - action: replace
+            source_labels:
+              - __meta_kubernetes_pod_name
+              - __meta_kubernetes_namespace
+              - __meta_kubernetes_container_name
+            regex: (.+);(.+);(.+)
+            replacement: /var/log/containers/\1_\2_\3-*.log
             target_label: __path__
-            replacement: /var/log/containers/${1}_${2}.log
 
 ---
 # Grafana
