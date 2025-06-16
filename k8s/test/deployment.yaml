@@ -186,7 +186,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "4"
 spec:
   serviceName: "mongo-service"
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: mongo
@@ -321,7 +321,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: argocd-app
