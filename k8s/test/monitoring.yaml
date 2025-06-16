@@ -23,11 +23,7 @@ data:
       filename: /promtail/run/positions.yaml
 
     clients:
-      - url: https://loki:3100/loki/api/v1/push
-        tls_config:
-          ca_file: /promtail/tls/ca.crt
-          cert_file: /promtail/tls/promtail.crt
-          key_file: /promtail/tls/promtail.key
+      - url: http://loki:3100/loki/api/v1/push
 
     scrape_configs:
       - job_name: varlogs
@@ -193,9 +189,6 @@ spec:
           securityContext:
             runAsUser: 0
           volumeMounts:
-            - mountPath: /promtail/config
-              name: config
-              readOnly: true
             - mountPath: /promtail/tls
               name: tls
               readOnly: true
@@ -212,9 +205,6 @@ spec:
         - name: config
           configMap:
             name: promtail
-        - name: tls
-          secret:
-            secretName: promtail-tls
         - name: run
           hostPath:
             path: /run/promtail
