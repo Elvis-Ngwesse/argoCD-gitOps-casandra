@@ -82,10 +82,7 @@ Access: [https://localhost:8080](https://localhost:8080)
 ### 🔑 Default Login
 
 ```bash
-Username: admin
-Password:
-  kubectl -n argocd get secret argocd-initial-admin-secret \
-  -o jsonpath="{.data.password}" | base64 -d
+argocd login localhost:8080 --username admin --password $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 ```
 
 ---
@@ -93,8 +90,6 @@ Password:
 ## 🔗 Connect Git Repository
 
 ```bash
-argocd login localhost:8080
-
 argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
   --ssh-private-key-path ~/.ssh/id_rsa
 ```
@@ -254,6 +249,16 @@ Download test results from the MinIO web interface.
 - add data source loki and set url
   http://loki:3100
 
+---
+
+## ⌚ Python-flask app
+- run the command
+  minikube service flask-service -n test --url
+---
+
+## ⌚ grafana app
+- run the command
+  minikube service grafana -n logging --url
 ---
 
 ## 🌐 Ingress with TLS

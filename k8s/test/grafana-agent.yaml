@@ -1,5 +1,4 @@
 ---
-# ConfigMap for Grafana Agent config
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -45,25 +44,40 @@ data:
           clients:
             - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
           scrape_configs:
-            - job_name: kubernetes-logs
-              static_configs:
-                - targets:
-                    - localhost
-                  labels:
-                    job: varlogs
-                    __path__: /var/log/containers/*.log
-              pipeline_stages:
-                - cri: {}
+            - job_name: kubernetes-pods
+              kubernetes_sd_configs:
+                - role: pod
               relabel_configs:
-                - source_labels: [__path__]
-                  regex: .*/([^_]+)_([^_]+)_([^-.]+)-.*\.log
-                  target_label: namespace
-                  replacement: $2
-                - source_labels: [namespace]
-                  regex: test|logging|argocd
+                # Only scrape pods annotated with promtail.io/scrape=true
+                - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_scrape]
                   action: keep
+                  regex: "true"
+
+                # Extract namespace, pod, container, node, app labels
+                - source_labels: [__meta_kubernetes_namespace]
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  target_label: pod
+                - source_labels: [__meta_kubernetes_pod_container_name]
+                  target_label: container
+                - source_labels: [__meta_kubernetes_pod_node_name]
+                  target_label: node
+                - source_labels: [__meta_kubernetes_pod_label_app]
+                  target_label: app
+
+                # Use pod annotation promtail.io/path as log path if present
+                - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_path]
+                  target_label: __path__
+                  replacement: $1
+                  regex: (.+)
+
+                # Drop pods without annotation or with scrape set to false (optional)
+                - action: drop
+                  regex: false
+                  source_labels: [__meta_kubernetes_pod_annotation_promtail_io_scrape]
+
 ---
-# DaemonSet for Grafana Agent
+# DaemonSet for Grafana Agent with volume for positions
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -94,6 +108,8 @@ spec:
             - name: dockercontainers
               mountPath: /var/lib/docker/containers
               readOnly: true
+            - name: positions
+              mountPath: /tmp
       volumes:
         - name: config
           configMap:
@@ -104,3 +120,5 @@ spec:
         - name: dockercontainers
           hostPath:
             path: /var/lib/docker/containers
+        - name: positions
+          emptyDir: {}
