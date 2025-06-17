@@ -1,106 +1,110 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logging
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-agent-config
   namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
 data:
   agent.yaml: |
-    server:
-      log_level: info
-
     metrics:
       global:
-        scrape_interval: 15s
+        scrape_interval: 60s
+        scrape_timeout: 10s
+      wal_directory: /tmp/grafana-agent-wal
       configs:
         - name: default
           scrape_configs:
-            - job_name: agent
+            - job_name: 'node_exporter'
+              metrics_path: /metrics
               static_configs:
-                - targets: ['127.0.0.1:12345']
-            - job_name: kubernetes-pods
-              kubernetes_sd_configs:
-                - role: pod
+                - targets: ['localhost:9100']
+                  labels:
+                    instance: 'minikube-node'
+              metric_relabel_configs:
+                - action: drop
+                  regex: node_scrape_collector_.+
+                  source_labels: [__name__]
               relabel_configs:
-                - source_labels: [__meta_kubernetes_namespace]
-                  regex: test|logging|argocd
-                  action: keep
-                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-                  regex: "true"
-                  action: keep
-                - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-                  target_label: __metrics_path__
-                  regex: (.+)
-                  action: replace
-                - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-                  regex: (.+):(?:\d+);(\d+)
-                  replacement: $1:$2
-                  target_label: __address__
-                  action: replace
+                - replacement: 'minikube-node'
+                  target_label: instance
 
-    logs:
-      configs:
-        - name: default
-          positions:
-            filename: /tmp/positions.yaml
-          clients:
-            - url: http://loki:3100/loki/api/v1/push
-          scrape_configs:
-            - job_name: kubernetes-pods
-              kubernetes_sd_configs:
-                - role: pod
+            - job_name: 'integrations/node_exporter_journal_scrape'
+              journal:
+                max_age: 24h
+                labels:
+                  instance: 'minikube-node'
+                  job: 'integrations/node_exporter'
               relabel_configs:
-                - source_labels: [__meta_kubernetes_namespace]
-                  regex: test|logging|argocd
-                  action: keep
-                - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_scrape]
-                  regex: "true"
-                  action: keep
-                - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_path]
-                  target_label: __path__
-                  action: replace
-                - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
-                  target_label: app
-                - source_labels: [__meta_kubernetes_namespace]
-                  target_label: namespace
-                - source_labels: [__meta_kubernetes_pod_name]
-                  target_label: pod
-                - source_labels: [__meta_kubernetes_pod_container_name]
-                  target_label: container
-                - action: replace
-                  source_labels: [__meta_kubernetes_pod_container_name]
-                  target_label: __path__
-                  replacement: /var/log/containers/*$1*.log
-              pipeline_stages:
-                - cri: {}
+                - source_labels: ['__journal__systemd_unit']
+                  target_label: 'unit'
+                - source_labels: ['__journal__boot_id']
+                  target_label: 'boot_id'
+                - source_labels: ['__journal__transport']
+                  target_label: 'transport'
+                - source_labels: ['__journal_priority_keyword']
+                  target_label: 'level'
 
-    traces:
-      configs:
-        - name: default
-          receivers:
-            jaeger:
-              protocols:
-                grpc: {}
+            - job_name: 'integrations/node_exporter_direct_scrape'
+              static_configs:
+                - targets: ['localhost']
+                  labels:
+                    instance: 'minikube-node'
+                    __path__: /var/log/{syslog,messages,*.log}
+                    job: 'integrations/node_exporter'
+
           remote_write:
-            - endpoint: tempo.logging.svc.cluster.local:55680
-              insecure: true
-          batch:
-            timeout: 5s
-            send_batch_size: 100
-
-    integrations:
-      node_exporter:
-        enabled: true
+            - url: url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
+              basic_auth:
+                username: admin
+                password: admin
 ---
-apiVersion: apps/v1
-kind: DaemonSet
+apiVersion: v1
+kind: ServiceAccount
 metadata:
   name: grafana-agent
   namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: grafana-agent
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "pods", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets", "deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: grafana-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: grafana-agent
+subjects:
+  - kind: ServiceAccount
+    name: grafana-agent
+    namespace: logging
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-agent
+  namespace: logging
+  labels:
+    app: grafana-agent
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: grafana-agent
@@ -111,25 +115,161 @@ spec:
     spec:
       serviceAccountName: grafana-agent
       containers:
-        - name: agent
+        - name: grafana-agent
           image: grafana/agent:v0.40.2
           args:
-            - "-config.file=/etc/agent/agent.yaml"
+            - run
+            - --config.file=/etc/agent/agent.yaml
+            - --server.http.listen-addr=0.0.0.0:12345
+          ports:
+            - containerPort: 12345
+              name: http-metrics
           volumeMounts:
             - name: config
               mountPath: /etc/agent
-            - name: varlog
-              mountPath: /var/log
-            - name: dockercontainers
-              mountPath: /var/lib/docker/containers
               readOnly: true
+            - name: host-root
+              mountPath: /host
+              readOnly: true
+          securityContext:
+            runAsUser: 0
       volumes:
         - name: config
           configMap:
             name: grafana-agent-config
-        - name: varlog
+        - name: host-root
           hostPath:
-            path: /var/log
-        - name: dockercontainers
-          hostPath:
-            path: /var/lib/docker/containers
+            path: /
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-agent
+  namespace: logging
+  labels:
+    app: grafana-agent
+spec:
+  selector:
+    app: grafana-agent
+  type: NodePort
+  ports:
+    - name: http-metrics
+      protocol: TCP
+      port: 80
+      targetPort: 12345
+      nodePort: 31245
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: logging
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 60s
+      scrape_timeout: 10s
+
+    scrape_configs:
+      - job_name: 'grafana-agent'
+        static_configs:
+          - targets: ['grafana-agent.logging.svc.cluster.local:80']
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: logging
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: logging
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "pods", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: logging
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: logging
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.52.0
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--web.enable-lifecycle"
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: prometheus-config
+              mountPath: /etc/prometheus
+            - name: prometheus-storage
+              mountPath: /prometheus
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config
+        - name: prometheus-storage
+          persistentVolumeClaim:
+            claimName: prometheus-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: logging
+  labels:
+    app: prometheus
+spec:
+  selector:
+    app: prometheus
+  type: NodePort
+  ports:
+    - name: web
+      port: 9090
+      targetPort: 9090
+      nodePort: 30900
