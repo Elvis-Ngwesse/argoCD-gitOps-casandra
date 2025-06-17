@@ -16,21 +16,6 @@ spec:
   selector:
     app: loki
 ---
-# Loki Persistent Volume Claim
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: loki-storage-claim
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "3"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
----
 # Loki ConfigMap
 apiVersion: v1
 kind: ConfigMap
@@ -112,9 +97,6 @@ spec:
       labels:
         app: loki
     spec:
-      securityContext:
-        runAsUser: 10001
-        fsGroup: 10001
       containers:
         - name: loki
           image: grafana/loki:2.8.2
@@ -128,10 +110,10 @@ spec:
               mountPath: /etc/loki
             - name: loki-storage
               mountPath: /loki
-      volumes:
-        - name: config
-          configMap:
-            name: loki-config
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            fsGroup: 0
   volumeClaimTemplates:
     - metadata:
         name: loki-storage
