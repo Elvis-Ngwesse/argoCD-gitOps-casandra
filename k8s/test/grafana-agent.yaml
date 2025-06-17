@@ -83,8 +83,10 @@ spec:
           image: grafana/agent:v0.40.2
           args:
             - run
-            - --config.file=/etc/agent/agent.yaml
-            - --server.http.listen-addr=0.0.0.0:12345
+            - --config.file
+            - /etc/agent/agent.yaml
+            - --server.http.listen-addr
+            - 0.0.0.0:12345
           ports:
             - containerPort: 12345
               name: http-metrics
