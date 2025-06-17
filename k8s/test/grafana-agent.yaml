@@ -1,5 +1,4 @@
 ---
-# ConfigMap for Grafana Agent config
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -10,6 +9,7 @@ metadata:
 data:
   agent.yaml: |
     server:
+      http_listen_port: 12345  # default is 12345, can be omitted or changed
 
     metrics:
       global:
@@ -17,7 +17,7 @@ data:
       configs:
         - name: default
           scrape_configs:
-            - job_name: 'kubernetes-pods'
+            - job_name: kubernetes-pods
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
@@ -62,8 +62,8 @@ data:
                 - source_labels: [namespace]
                   regex: test|logging|argocd
                   action: keep
+
 ---
-# DaemonSet for Grafana Agent
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -81,6 +81,10 @@ spec:
         app: grafana-agent
     spec:
       serviceAccountName: grafana-agent
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       containers:
         - name: agent
           image: grafana/agent:v0.40.2
