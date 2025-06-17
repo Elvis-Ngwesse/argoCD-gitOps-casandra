@@ -7,8 +7,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "4"
 data:
   agent.yaml: |
-    server:
-      log_level: info
+    server: {}
 
     metrics:
       global:
@@ -82,8 +81,9 @@ spec:
         - name: grafana-agent
           image: grafana/agent:v0.40.2
           args:
-            - "-config.file=/etc/agent/agent.yaml"
-            - "-server.http.listen-addr=0.0.0.0:12345"
+            - run
+            - --config.file=/etc/agent/agent.yaml
+            - --server.http.listen-addr=0.0.0.0:12345
           ports:
             - containerPort: 12345
               name: http-metrics
