@@ -9,6 +9,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "5"
 data:
   agent.yaml: |
+    server:
+      log_level: info
+
     metrics:
       global:
         scrape_interval: 60s
@@ -52,14 +55,14 @@ data:
                 - targets: ['localhost']
                   labels:
                     instance: 'minikube-node'
-                    __path__: /var/log/{syslog,messages,*.log}
                     job: 'integrations/node_exporter'
 
           remote_write:
             - url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
+
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: grafana-agent
   namespace: logging
@@ -68,7 +71,6 @@ metadata:
   labels:
     app: grafana-agent
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: grafana-agent
@@ -95,8 +97,15 @@ spec:
             - name: host-root
               mountPath: /host
               readOnly: true
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: dockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
           securityContext:
             runAsUser: 0
+            privileged: true
       volumes:
         - name: config
           configMap:
@@ -104,6 +113,13 @@ spec:
         - name: host-root
           hostPath:
             path: /
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: dockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+
 ---
 apiVersion: v1
 kind: Service
