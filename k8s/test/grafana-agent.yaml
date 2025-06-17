@@ -24,17 +24,17 @@ data:
                   regex: test|logging|argocd
                   action: keep
                 - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-                  action: keep
                   regex: "true"
+                  action: keep
                 - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-                  action: replace
-                  target_label: __metrics_path__
                   regex: (.+)
-                - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+                  target_label: __metrics_path__
                   action: replace
+                - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
                   regex: (.+):(?:\d+);(\d+)
                   replacement: $1:$2
                   target_label: __address__
+                  action: replace
 
     logs:
       configs:
@@ -48,36 +48,24 @@ data:
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
-                # Only scrape pods annotated with promtail.io/scrape=true
-                - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_scrape]
+                - source_labels: [__meta_kubernetes_namespace]
+                  regex: test|logging|argocd
                   action: keep
-                  regex: "true"
-
-                # Extract namespace, pod, container, node, app labels
+                - source_labels: [__meta_kubernetes_pod_label_name]
+                  target_label: app
                 - source_labels: [__meta_kubernetes_namespace]
                   target_label: namespace
                 - source_labels: [__meta_kubernetes_pod_name]
                   target_label: pod
                 - source_labels: [__meta_kubernetes_pod_container_name]
                   target_label: container
-                - source_labels: [__meta_kubernetes_pod_node_name]
-                  target_label: node
-                - source_labels: [__meta_kubernetes_pod_label_app]
-                  target_label: app
-
-                # Use pod annotation promtail.io/path as log path if present
-                - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_path]
+                - action: replace
+                  source_labels: [__meta_kubernetes_pod_container_name]
                   target_label: __path__
-                  replacement: $1
-                  regex: (.+)
-
-                # Drop pods without annotation or with scrape set to false (optional)
-                - action: drop
-                  regex: false
-                  source_labels: [__meta_kubernetes_pod_annotation_promtail_io_scrape]
-
+                  replacement: /var/log/containers/*$1*.log
+              pipeline_stages:
+                - cri: {}
 ---
-# DaemonSet for Grafana Agent with volume for positions
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -108,8 +96,6 @@ spec:
             - name: dockercontainers
               mountPath: /var/lib/docker/containers
               readOnly: true
-            - name: positions
-              mountPath: /tmp
       volumes:
         - name: config
           configMap:
@@ -120,5 +106,3 @@ spec:
         - name: dockercontainers
           hostPath:
             path: /var/lib/docker/containers
-        - name: positions
-          emptyDir: {}
