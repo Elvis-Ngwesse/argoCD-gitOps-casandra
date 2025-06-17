@@ -58,10 +58,7 @@ data:
                     job: 'integrations/node_exporter'
 
           remote_write:
-            - url: url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
-              basic_auth:
-                username: admin
-                password: admin
+            - url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
 ---
 apiVersion: v1
 kind: ServiceAccount
