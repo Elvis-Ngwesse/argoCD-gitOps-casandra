@@ -53,16 +53,26 @@ data:
                   regex: test|logging|argocd
                   action: keep
 
-                # Optional: support annotation-based discovery
+                # Support Promtail-style annotation-based log discovery
                 - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_scrape]
                   regex: "true"
                   action: keep
+
+                # If annotation defines a path
                 - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_path]
                   target_label: __path__
                   action: replace
 
+                # If annotation is missing, fallback to default path
+                - action: replace
+                  source_labels: [__meta_kubernetes_pod_container_name]
+                  target_label: __path__
+                  replacement: /var/log/containers/*$1*.log
+
                 # Label mapping
                 - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+                  target_label: app
+                - source_labels: [__meta_kubernetes_pod_label_app]
                   target_label: app
                 - source_labels: [__meta_kubernetes_namespace]
                   target_label: namespace
@@ -71,11 +81,6 @@ data:
                 - source_labels: [__meta_kubernetes_pod_container_name]
                   target_label: container
 
-                # Default log path fallback if annotation not present
-                - action: replace
-                  source_labels: [__meta_kubernetes_pod_container_name]
-                  target_label: __path__
-                  replacement: /var/log/containers/*$1*.log
               pipeline_stages:
                 - cri: {}
 ---

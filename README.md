@@ -72,3 +72,16 @@ argoCD-gitOps-casandra/
 - brew install minikube
 
 
+
+
+
+1. ✅ Do container log files exist on the node?
+   SSH into the Minikube node (or host node):
+sudo ls /var/log/containers | grep argocd-app
+
+2. ✅ Are pod annotations in place?
+   Run:
+
+kubectl -n test get pod argocd-app-848c877486-x9b47 -o jsonpath='{.metadata.annotations}'
+
+
