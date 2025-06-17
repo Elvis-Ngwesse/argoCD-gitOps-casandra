@@ -1,28 +1,128 @@
-# loki-app.yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
+---
+# Loki StatefulSet + Service (simplified, production-ready configs will be more complex)
+apiVersion: v1
+kind: Service
 metadata:
   name: loki
-  namespace: argocd
+  namespace: logging
+  labels:
+    app: loki
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  ports:
+    - port: 3100
+      name: http
+  selector:
+    app: loki
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  namespace: logging
+  labels:
+    app: loki
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 spec:
-  project: default
-  source:
-    repoURL: https://grafana.github.io/helm-charts
-    chart: loki
-    targetRevision: 5.45.0
-    helm:
-      releaseName: loki
-      values: |
-        loki:
-          auth_enabled: false
-        persistence:
-          enabled: false
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: logging
-  syncPolicy:
-    automated:
-      selfHeal: true
-      prune: true
+  selector:
+    matchLabels:
+      app: loki
+  serviceName: loki
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      containers:
+        - name: loki
+          image: grafana/loki:2.8.2
+          args:
+            - -config.file=/etc/loki/local-config.yaml
+          ports:
+            - containerPort: 3100
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+      volumes:
+        - name: config
+          configMap:
+            name: loki-config
+---
+# Loki ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+data:
+  local-config.yaml: |
+    auth_enabled: false
+
+    server:
+      http_listen_port: 3100
+      log_level: info
+
+    ingester:
+      lifecycler:
+        address: 127.0.0.1
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+      chunk_idle_period: 5m
+      chunk_retain_period: 30s
+      max_transfer_retries: 0
+
+    schema_config:
+      configs:
+        - from: 2020-10-24
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /loki/index
+        cache_location: /loki/cache
+        shared_store: filesystem
+      filesystem:
+        directory: /loki/chunks
+
+    limits_config:
+      enforce_metric_name: false
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+
+    chunk_store_config:
+      max_look_back_period: 0s
+
+    table_manager:
+      retention_deletes_enabled: true
+      retention_period: 168h
+---
+# Persistent Volume Claims for Loki (simplified, adjust storage class and size as needed)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-storage-claim
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Update Loki StatefulSet to use PVC (patch after initial deployment or merge into above)
+# (You can add this volume and volumeMount in the StatefulSet spec)

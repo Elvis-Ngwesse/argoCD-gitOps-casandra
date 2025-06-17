@@ -1,38 +1,48 @@
-# grafana-app.yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
+---
+# Grafana Deployment + Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: grafana
-  namespace: argocd
+  namespace: logging
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 spec:
-  project: default
-  source:
-    repoURL: https://grafana.github.io/helm-charts
-    chart: grafana
-    targetRevision: 7.3.10
-    helm:
-      releaseName: grafana
-      values: |
-        adminPassword: admin
-        service:
-          type: NodePort
-        persistence:
-          enabled: false
-        datasources:
-          datasources.yaml:
-            apiVersion: 1
-            datasources:
-              - name: Loki
-                type: loki
-                url: http://loki.logging.svc.cluster.local:3100
-                access: proxy
-                isDefault: true
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: logging
-  syncPolicy:
-    automated:
-      selfHeal: true
-      prune: true
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:9.0.0
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "admin" # Change in production
+          volumeMounts:
+            - name: grafana-storage
+              mountPath: /var/lib/grafana
+      volumes:
+        - name: grafana-storage
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "7"
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      nodePort: 32000
+  selector:
+    app: grafana

@@ -1,10 +1,5 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
 ---
+# ConfigMap for Grafana Agent config
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -16,7 +11,7 @@ data:
   agent.yaml: |
     server:
       log_level: info
-      http_listen_port: 12345
+      http_listen_address: 0.0.0.0:12345
 
     metrics:
       global:
@@ -24,16 +19,16 @@ data:
       configs:
         - name: default
           scrape_configs:
-            - job_name: 'k8s-pods'
+            - job_name: 'kubernetes-pods'
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
                 - source_labels: [__meta_kubernetes_namespace]
-                  regex: (test|logging|argocd)
+                  regex: test|logging|argocd
                   action: keep
                 - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
                   action: keep
-                  regex: true
+                  regex: "true"
                 - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
                   action: replace
                   target_label: __metrics_path__
@@ -50,44 +45,35 @@ data:
           positions:
             filename: /tmp/positions.yaml
           clients:
-            - url: http://loki.logging.svc:3100/loki/api/v1/push
+            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
           scrape_configs:
-            - job_name: system
+            - job_name: kubernetes-logs
               static_configs:
                 - targets:
                     - localhost
                   labels:
                     job: varlogs
-                    __path__: /var/log/*.log
-            - job_name: containers
-              kubernetes_sd_configs:
-                - role: pod
+                    __path__: /var/log/containers/*.log
+              pipeline_stages:
+                - cri: {}
               relabel_configs:
-                - source_labels: [__meta_kubernetes_namespace]
-                  regex: (test|logging|argocd)
-                  action: keep
-                - source_labels: [__meta_kubernetes_pod_container_name]
-                  target_label: container
-                - source_labels: [__meta_kubernetes_pod_name]
-                  target_label: pod
-                - source_labels: [__meta_kubernetes_namespace]
+                - source_labels: [__path__]
+                  regex: .*/([^_]+)_([^_]+)_([^-.]+)-.*\.log
                   target_label: namespace
-                - source_labels: [__meta_kubernetes_node_name]
-                  target_label: node
-                - action: replace
-                  source_labels: [__meta_kubernetes_pod_container_name]
-                  target_label: __path__
-                  replacement: /var/log/pods/*/*/*.log
+                  replacement: $2
+                - source_labels: [namespace]
+                  regex: test|logging|argocd
+                  action: keep
 ---
+# DaemonSet for Grafana Agent
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: grafana-agent
   namespace: logging
   annotations:
     argocd.argoproj.io/sync-wave: "6"
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: grafana-agent
@@ -98,7 +84,7 @@ spec:
     spec:
       serviceAccountName: grafana-agent
       containers:
-        - name: grafana-agent
+        - name: agent
           image: grafana/agent:v0.40.2
           args:
             - "-config.file=/etc/agent/agent.yaml"
@@ -107,8 +93,9 @@ spec:
               mountPath: /etc/agent
             - name: varlog
               mountPath: /var/log
-            - name: positions
-              mountPath: /tmp
+            - name: dockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
       volumes:
         - name: config
           configMap:
@@ -116,20 +103,7 @@ spec:
         - name: varlog
           hostPath:
             path: /var/log
-        - name: positions
-          emptyDir: {}
+        - name: dockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: grafana-agent
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
-spec:
-  selector:
-    app: grafana-agent
-  ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 12345
