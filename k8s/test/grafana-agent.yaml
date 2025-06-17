@@ -11,7 +11,7 @@ data:
   agent.yaml: |
     server:
       log_level: info
-      http_listen_address: 0.0.0.0:12345
+      http_listen_port: 12345
 
     metrics:
       global:
@@ -106,4 +106,3 @@ spec:
         - name: dockercontainers
           hostPath:
             path: /var/lib/docker/containers
----

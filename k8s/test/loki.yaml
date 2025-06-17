@@ -1,5 +1,5 @@
 ---
-# Loki StatefulSet + Service (simplified, production-ready configs will be more complex)
+# Loki Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -16,41 +16,20 @@ spec:
   selector:
     app: loki
 ---
-apiVersion: apps/v1
-kind: StatefulSet
+# Loki Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
 metadata:
-  name: loki
+  name: loki-storage-claim
   namespace: logging
-  labels:
-    app: loki
   annotations:
-    argocd.argoproj.io/sync-wave: "6"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
-  selector:
-    matchLabels:
-      app: loki
-  serviceName: loki
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: loki
-    spec:
-      containers:
-        - name: loki
-          image: grafana/loki:2.8.2
-          args:
-            - -config.file=/etc/loki/local-config.yaml
-          ports:
-            - containerPort: 3100
-              name: http
-          volumeMounts:
-            - name: config
-              mountPath: /etc/loki
-      volumes:
-        - name: config
-          configMap:
-            name: loki-config
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
 ---
 # Loki ConfigMap
 apiVersion: v1
@@ -97,6 +76,9 @@ data:
       filesystem:
         directory: /loki/chunks
 
+    compactor:
+      working_directory: /loki/compactor
+
     limits_config:
       enforce_metric_name: false
       reject_old_samples: true
@@ -109,20 +91,52 @@ data:
       retention_deletes_enabled: true
       retention_period: 168h
 ---
-# Persistent Volume Claims for Loki (simplified, adjust storage class and size as needed)
-apiVersion: v1
-kind: PersistentVolumeClaim
+# Loki StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
-  name: loki-storage-claim
+  name: loki
   namespace: logging
+  labels:
+    app: loki
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: "6"
 spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
----
-# Update Loki StatefulSet to use PVC (patch after initial deployment or merge into above)
-# (You can add this volume and volumeMount in the StatefulSet spec)
+  serviceName: loki
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      containers:
+        - name: loki
+          image: grafana/loki:2.8.2
+          args:
+            - -config.file=/etc/loki/local-config.yaml
+          ports:
+            - containerPort: 3100
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+            - name: loki-storage
+              mountPath: /loki
+      volumes:
+        - name: config
+          configMap:
+            name: loki-config
+        # Note: This volume entry here is ignored by StatefulSet pods;
+        # StatefulSet uses volumeClaimTemplates instead for persistent storage
+  volumeClaimTemplates:
+    - metadata:
+        name: loki-storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
