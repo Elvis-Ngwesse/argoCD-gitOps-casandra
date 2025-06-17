@@ -16,7 +16,22 @@ spec:
   selector:
     app: loki
 ---
-# Loki ConfigMap
+# Loki Persistent Volume Claim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-storage-claim
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+# Loki ConfigMap with correct server config for v2.8.2
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -34,7 +49,6 @@ data:
 
     ingester:
       lifecycler:
-        address: 127.0.0.1
         ring:
           kvstore:
             store: inmemory
@@ -110,10 +124,10 @@ spec:
               mountPath: /etc/loki
             - name: loki-storage
               mountPath: /loki
-          securityContext:
-            runAsUser: 0
-            runAsGroup: 0
-            fsGroup: 0
+      volumes:
+        - name: config
+          configMap:
+            name: loki-config
   volumeClaimTemplates:
     - metadata:
         name: loki-storage
