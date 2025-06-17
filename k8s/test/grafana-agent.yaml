@@ -201,7 +201,6 @@ subjects:
     name: prometheus
     namespace: logging
 ---
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
