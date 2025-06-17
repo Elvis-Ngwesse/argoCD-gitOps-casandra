@@ -31,7 +31,7 @@ spec:
     requests:
       storage: 5Gi
 ---
-# Loki ConfigMap with correct server config for v2.8.2
+# Loki ConfigMap
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -49,6 +49,7 @@ data:
 
     ingester:
       lifecycler:
+        address: 127.0.0.1
         ring:
           kvstore:
             store: inmemory
@@ -111,6 +112,9 @@ spec:
       labels:
         app: loki
     spec:
+      securityContext:
+        runAsUser: 10001
+        fsGroup: 10001
       containers:
         - name: loki
           image: grafana/loki:2.8.2
