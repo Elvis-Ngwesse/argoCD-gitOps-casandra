@@ -320,6 +320,8 @@ metadata:
   namespace: test
   annotations:
     argocd.argoproj.io/sync-wave: "5"
+    promtail.io/scrape: "true"
+    promtail.io/path: "/var/log/containers/<podname>-<namespace>-<containername>.log"
 spec:
   replicas: 1
   selector:
@@ -375,6 +377,8 @@ metadata:
   namespace: test
   annotations:
     argocd.argoproj.io/sync-wave: "5"
+    promtail.io/scrape: "true"
+    promtail.io/path: "/var/log/containers/<podname>-<namespace>-<containername>.log"
 spec:
   replicas: 1
   selector:
