@@ -8,6 +8,8 @@ kind: StatefulSet
 metadata:
   name: loki
   namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
   labels:
     app: loki
 spec:
@@ -67,6 +69,8 @@ kind: ConfigMap
 metadata:
   name: loki-config
   namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
   labels:
     app: loki
 data:

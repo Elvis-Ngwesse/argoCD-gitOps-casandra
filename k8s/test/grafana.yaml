@@ -8,6 +8,8 @@ kind: StatefulSet
 metadata:
   name: grafana
   namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
   labels:
     app: grafana
 spec:
@@ -69,6 +71,8 @@ kind: ConfigMap
 metadata:
   name: grafana-config
   namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
   labels:
     app: grafana
 data:
@@ -97,6 +101,8 @@ kind: ConfigMap
 metadata:
   name: grafana-datasources
   namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
   labels:
     app: grafana
 data:

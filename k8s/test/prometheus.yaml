@@ -8,6 +8,8 @@ kind: StatefulSet
 metadata:
   name: prometheus
   namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
   labels:
     app: prometheus
 spec:
@@ -51,6 +53,8 @@ kind: ConfigMap
 metadata:
   name: prometheus-config
   namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
   labels:
     app: prometheus
 data:
