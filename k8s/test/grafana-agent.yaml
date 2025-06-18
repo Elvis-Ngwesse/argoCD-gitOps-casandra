@@ -4,16 +4,17 @@ metadata:
   name: grafana-agent-config
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "6"
 data:
   agent.yaml: |
-    server: {}
+    server:
+      log_level: info
 
     metrics:
+      wal_directory: /tmp/grafana-agent-wal
       global:
         scrape_interval: 60s
         scrape_timeout: 10s
-      wal_directory: /tmp/grafana-agent-wal
       configs:
         - name: default
           scrape_configs:
