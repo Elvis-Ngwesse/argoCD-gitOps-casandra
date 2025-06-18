@@ -1,44 +1,17 @@
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: prometheus-config
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
-data:
-  prometheus.yml: |
-    global:
-      scrape_interval: 60s
-      scrape_timeout: 10s
+## prometheus.yaml contains a tiny Prometheus deployment used for testing the
+## Grafana Agent Operator.
 
-    scrape_configs:
-      - job_name: 'grafana-agent'
-        static_configs:
-          - targets: ['grafana-agent.logging.svc.cluster.local:80']
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: prometheus-data
-  namespace: logging
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
----
+
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: prometheus
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
+  namespace: default
   labels:
     app: prometheus
 spec:
+  serviceName: prometheus
   replicas: 1
   selector:
     matchLabels:
@@ -48,52 +21,76 @@ spec:
       labels:
         app: prometheus
     spec:
-      serviceAccountName: prometheus
-      initContainers:
-        - name: init-permissions
-          image: busybox
-          command: ["sh", "-c", "chown -R 65534:65534 /prometheus"]
-          volumeMounts:
-            - name: prometheus-storage
-              mountPath: /prometheus
       containers:
         - name: prometheus
-          image: prom/prometheus:v2.52.0
-          securityContext:
-            runAsUser: 0
+          image: prom/prometheus:v2.26.0
           args:
-            - "--config.file=/etc/prometheus/prometheus.yml"
-            - "--storage.tsdb.path=/prometheus"
-            - "--web.enable-lifecycle"
+            - --config.file=/var/lib/prometheus/prometheus.yml
+            - --enable-feature=remote-write-receiver
+            - --storage.tsdb.path=/var/lib/data
           ports:
-            - containerPort: 9090
+            - name: http-metrics
+              containerPort: 9090
           volumeMounts:
-            - name: prometheus-config
-              mountPath: /etc/prometheus
-            - name: prometheus-storage
-              mountPath: /prometheus
+            - mountPath: /var/lib/prometheus
+              name: config
+              readOnly: true
+            - mountPath: /var/lib/data
+              name: data
       volumes:
-        - name: prometheus-config
+        - name: config
           configMap:
             name: prometheus-config
-        - name: prometheus-storage
-          persistentVolumeClaim:
-            claimName: prometheus-data
+        - name: data
+          emptyDir: {}
 
 ---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: default
+  labels:
+    app: prometheus
+data:
+  prometheus.yml: |
+    # Nothing to do, Prometheus is just used for writing to
+
+---
+
 apiVersion: v1
 kind: Service
 metadata:
   name: prometheus
-  namespace: logging
+  namespace: default
   labels:
     app: prometheus
 spec:
   selector:
     app: prometheus
-  type: NodePort
   ports:
-    - name: web
+    - name: http-metrics
       port: 9090
       targetPort: 9090
-      nodePort: 30900
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus
+  namespace: default
+  labels:
+    app: prometheus
+spec:
+  rules:
+    - host: prometheus.k3d.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port: { name: 'http-metrics' }
