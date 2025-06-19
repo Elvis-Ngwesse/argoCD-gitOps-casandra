@@ -30,7 +30,7 @@ metrics = PrometheusMetrics(app)
 # 🔐 Load MinIO Environment Variables
 # ---------------------------------------
 try:
-    endpoint = os.environ['MINIO_ENDPOINT']  # e.g. http://minio-service:9000
+    endpoint = os.environ['MINIO_ENDPOINT']        # e.g. http://minio-service:9000
     access_key = os.environ['AWS_ACCESS_KEY_ID']
     secret_key = os.environ['AWS_SECRET_ACCESS_KEY']
     bucket = os.environ['MINIO_BUCKET']
@@ -38,6 +38,10 @@ try:
 except KeyError as e:
     logger.error("❌ Missing environment variable: %s", e)
     raise
+
+@app.route('/healthz')
+def health():
+    return jsonify({"status": "ok"}), 200
 
 # ---------------------------------------
 # 🪣 Connect to MinIO (S3-Compatible)
@@ -53,18 +57,6 @@ s3 = boto3.client(
 # For local development, replace MinIO hostname with this
 LOCAL_HOST = 'localhost:9000'
 
-
-# ---------------------------------------
-# ✅ Health Route for Kubernetes
-# ---------------------------------------
-@app.route('/healthz')
-def health():
-    return jsonify({"status": "ok"}), 200
-
-
-# ---------------------------------------
-# 🔗 Presigned URL Generator
-# ---------------------------------------
 @app.route('/presigned-urls')
 def presigned_urls():
     logger.info("📥 Received request to generate presigned URLs")
@@ -95,7 +87,6 @@ def presigned_urls():
             logger.warning("⚠️ Failed to generate URL for key %s: %s", key, e)
 
     return jsonify(urls)
-
 
 # ---------------------------------------
 # 🚀 Run the App
