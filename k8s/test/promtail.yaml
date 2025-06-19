@@ -50,6 +50,12 @@ data:
 
     clients:
       - url: http://loki.logging.svc:3100/loki/api/v1/push
+        batchwait: 1s          # how long to wait before sending a batch
+        batchsize: 1048576     # max batch size in bytes (1 MB default)
+        backoff_config:
+          minbackoff: 500ms
+          maxbackoff: 5s
+          maxretries: 10
 
     positions:
       filename: /tmp/positions.yaml
