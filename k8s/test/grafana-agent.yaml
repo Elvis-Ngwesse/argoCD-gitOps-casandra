@@ -153,7 +153,19 @@ data:
                 - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
                   target_label: __path__
                   replacement: /var/log/pods/*$1/*.log
-
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-agent-wal-pvc
+  namespace: logging
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -225,6 +237,5 @@ spec:
         - name: positions
           emptyDir: {}
         - name: wal
-          hostPath:
-            path: /var/lib/grafana-agent/wal
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: grafana-agent-wal-pvc
