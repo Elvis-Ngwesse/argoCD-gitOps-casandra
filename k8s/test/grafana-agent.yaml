@@ -154,6 +154,7 @@ spec:
           image: grafana/agent:v0.40.2
           args:
             - --config.file=/etc/agent/agent.river
+            - --enable-features=flow
           volumeMounts:
             - name: config
               mountPath: /etc/agent
