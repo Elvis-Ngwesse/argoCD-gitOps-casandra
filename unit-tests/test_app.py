@@ -14,7 +14,7 @@ def test_index_status_code(client):
     assert response.status_code == 200
 
 
-def test_index_contains_keywords(client):
+def test_customer_generator_index_contains_keywords(client):
     response = client.get('/')
     data = response.data.decode()
     assert "Customer Generator" in data

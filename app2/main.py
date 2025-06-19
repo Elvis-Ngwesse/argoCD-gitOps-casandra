@@ -55,11 +55,11 @@ LOCAL_HOST = 'localhost:9000'
 
 
 # ---------------------------------------
-# 🔗 Health & Root Route (Fixes 404)
+# ✅ Health Route for Kubernetes
 # ---------------------------------------
-@app.route('/')
-def index():
-    return jsonify({"status": "ok", "message": "MinIO Presigned URL Service is running"}), 200
+@app.route('/healthz')
+def health():
+    return jsonify({"status": "ok"}), 200
 
 
 # ---------------------------------------
