@@ -21,7 +21,7 @@ metadata:
   name: mongo
   namespace: test
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   serviceName: "mongo-service"
   replicas: 1

@@ -7,7 +7,7 @@ kind: PersistentVolume
 metadata:
   name: mongo-pv
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   capacity:
     storage: 1Gi
@@ -24,7 +24,7 @@ metadata:
   name: mongo-pvc
   namespace: test
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -42,7 +42,7 @@ kind: PersistentVolume
 metadata:
   name: grafana-pv
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   capacity:
     storage: 5Gi
@@ -59,7 +59,7 @@ metadata:
   name: grafana-storage
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -78,7 +78,7 @@ metadata:
   name: loki-storage-pvc
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -93,7 +93,7 @@ metadata:
   name: loki-compactor-pvc
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -110,7 +110,7 @@ kind: PersistentVolume
 metadata:
   name: promtail-positions-pv
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
   labels:
     type: local
 spec:
@@ -130,7 +130,7 @@ metadata:
   name: promtail-positions-pvc
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -148,7 +148,7 @@ kind: PersistentVolume
 metadata:
   name: prometheus-pv
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
   labels:
     type: local
 spec:
@@ -167,7 +167,7 @@ metadata:
   name: prometheus-pvc
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -186,7 +186,7 @@ metadata:
   name: grafana-agent-wal-pvc
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   accessModes:
     - ReadWriteOnce
