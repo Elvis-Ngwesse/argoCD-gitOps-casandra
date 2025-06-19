@@ -84,7 +84,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 20Gi
+      storage: 5Gi
   storageClassName: ""
   volumeName: loki-storage-pv
 ---
