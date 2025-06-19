@@ -48,10 +48,8 @@ spec:
     storage: 5Gi
   accessModes:
     - ReadWriteOnce
-  hostPath:
-    path: /mnt/data/grafana
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: manual
+  storageClassName: ""
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -66,7 +64,8 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: manual
+  storageClassName: ""
+  volumeName: grafana-pv
 
 ---
 # ---------------------------------------------------
@@ -86,7 +85,7 @@ spec:
     requests:
       storage: 5Gi
   storageClassName: ""
-  volumeName: loki-storage-pv
+  volumeName: loki-compactor-pv
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -103,8 +102,6 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
-  hostPath:
-    path: /mnt/data/loki/compactor  # <-- ensure this path exists on all nodes or use nodeSelector
 ---
 # ---------------------------------------------------
 # 4. PersistentVolume + PVC (promtail-positions-pv)
@@ -122,8 +119,6 @@ spec:
     storage: 1Gi
   accessModes:
     - ReadWriteOnce
-  hostPath:
-    path: /mnt/data/promtail-positions
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
 
@@ -158,11 +153,9 @@ metadata:
     type: local
 spec:
   capacity:
-    storage: 10Gi
+    storage: 5Gi
   accessModes:
     - ReadWriteOnce
-  hostPath:
-    path: /mnt/data/prometheus
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
 ---
@@ -179,13 +172,29 @@ spec:
   storageClassName: ""
   resources:
     requests:
-      storage: 10Gi
+      storage: 5Gi
   volumeName: prometheus-pv
 
 ---
 # ---------------------------------------------------
 # 6. PersistentVolume + PVC (grafana-agent-wal-pvc)
 # ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-agent-wal-pvc
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: ""
+  volumeName: grafana-agent-wal-pvc
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
