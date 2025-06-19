@@ -56,7 +56,7 @@ spec:
             - sh
             - -c
             - |
-              pip install -r unit-tests/requirements.txt boto3 pytest-html && \
+              pip install -r unit-tests/requirements.txt boto3 pytest-html prometheus_flask_exporter && \
               export PYTHONPATH=/app && \
               TIMESTAMP=$(date +%Y%m%d%H%M%S) && \
               pytest unit-tests/test_app.py --junitxml=results_$TIMESTAMP.xml --html=results_$TIMESTAMP.html && \
