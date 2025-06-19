@@ -116,7 +116,7 @@ spec:
             claimName: loki-storage-pvc
         - name: loki-compactor
           persistentVolumeClaim:
-            claimName: loki-compactor-pvc
+            claimName: loki-storage-pvc
 ---
 apiVersion: v1
 kind: Service
