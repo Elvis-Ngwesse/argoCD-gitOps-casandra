@@ -261,6 +261,9 @@ Download test results from the MinIO web interface.
   minikube service grafana -n logging --url
 ---
 
+
+minikube service prometheus -n logging --url
+
 ## 🌐 Ingress with TLS
 
 > Configure ingress rules and TLS certificates for secure external access.
