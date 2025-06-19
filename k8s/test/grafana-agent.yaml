@@ -151,10 +151,10 @@ spec:
         runAsUser: 0  # Needs root to read /var/log/pods/*.log
       containers:
         - name: grafana-agent
-          image: grafana/agent-flow:latest
+          image: grafana/agent:v0.41.0
           args:
             - --config.file=/etc/agent/agent.river
-            - --enable-features=flow
+            - --config.file.type=river
           volumeMounts:
             - name: config
               mountPath: /etc/agent
