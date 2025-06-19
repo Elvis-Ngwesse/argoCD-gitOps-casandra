@@ -178,26 +178,7 @@ spec:
 
 ---
 # ---------------------------------------------------
-# 6. PersistentVolume + PVC (grafana-storage)
-# ---------------------------------------------------
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: grafana-storage
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "4"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-  storageClassName: standard
-
----
-# ---------------------------------------------------
-# 7. PersistentVolume + PVC (grafana-agent-wal-pvc)
+# 6. PersistentVolume + PVC (grafana-agent-wal-pvc)
 # ---------------------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
