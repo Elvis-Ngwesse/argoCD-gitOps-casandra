@@ -84,27 +84,6 @@ data:
                   target_label: __path__
                   replacement: /var/log/pods/*$1/*.log
 
-    discovery:
-      kubernetes:
-        pods:
-          role: pod
-        nodes:
-          role: node
-
-    relabel_configs:
-      - source_labels: ["__meta_kubernetes_namespace"]
-        target_label: "namespace"
-      - source_labels: ["__meta_kubernetes_pod_container_name"]
-        target_label: "container"
-      - source_labels: ["__meta_kubernetes_pod_name"]
-        target_label: "pod"
-      - source_labels: ["__meta_kubernetes_pod_node_name"]
-        action: keep
-        regex: ${HOSTNAME}
-      - source_labels: ["__meta_kubernetes_namespace"]
-        action: drop
-        regex: "grafana-agent"
-
 ---
 apiVersion: apps/v1
 kind: DaemonSet
