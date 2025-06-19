@@ -15,6 +15,7 @@ spec:
     - ReadWriteOnce
   hostPath:
     path: /mnt/data/mongo
+    type: DirectoryOrCreate
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
 ---
@@ -50,6 +51,9 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
+  hostPath:
+    path: /mnt/data/grafana
+    type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -102,6 +106,9 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
+  hostPath:
+    path: /mnt/data/loki/compactor
+    type: DirectoryOrCreate
 ---
 # ---------------------------------------------------
 # 4. PersistentVolume + PVC (promtail-positions-pv)
@@ -121,6 +128,9 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
+  hostPath:
+    path: /mnt/data/promtail
+    type: DirectoryOrCreate
 
 ---
 apiVersion: v1
@@ -158,6 +168,9 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
+  hostPath:
+    path: /mnt/data/prometheus
+    type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
