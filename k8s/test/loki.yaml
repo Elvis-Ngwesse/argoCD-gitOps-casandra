@@ -1,67 +1,38 @@
-
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: loki-storage-pvc
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
-  storageClassName: standard
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: loki-compactor-pvc
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-  storageClassName: standard
----
+# ---------------------------------------------------
+# Loki loki-config
+# ---------------------------------------------------
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: loki-config
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "6"
 data:
   loki-config.yaml: |
-    auth_enabled: false
+    auth_enabled: false  # Disable auth; useful in dev/testing
 
     server:
-      http_listen_port: 3100
+      http_listen_port: 3100  # Loki's main HTTP port
 
     distributor:
       ring:
         kvstore:
-          store: memberlist
+          store: memberlist  # Uses gossip protocol for clustering
 
     ingester:
       lifecycler:
         ring:
           kvstore:
             store: memberlist
-          replication_factor: 1
-        final_sleep: 0s
-      chunk_idle_period: 5m
-      chunk_retain_period: 30m
+          replication_factor: 1  # 1 replica (dev setup)
+      chunk_idle_period: 5m     # Flush chunks idle for 5 minutes
+      chunk_retain_period: 30m  # Retain chunks in memory for 30 minutes
 
     memberlist:
+      bind_port: 7946  # Gossip protocol port
       abort_if_cluster_join_fails: false
-      bind_port: 7946
       max_join_backoff: 1m
       max_join_retries: 10
       min_join_backoff: 1s
@@ -83,25 +54,27 @@ data:
         shared_store: filesystem
 
       filesystem:
-        directory: /loki/chunks
+        directory: /loki/chunks  # Local storage for logs
 
     limits_config:
-      enforce_metric_name: false
       reject_old_samples: true
-      reject_old_samples_max_age: 168h
+      reject_old_samples_max_age: 168h  # Reject samples older than 7 days
 
     compactor:
       working_directory: /data/compactor
       shared_store: filesystem
-      compaction_interval: 5m
+      compaction_interval: 5m  # Compact small index files every 5 minutes
 ---
+# ---------------------------------------------------
+# Loki Deployment + Service
+# ---------------------------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: loki
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "7"
 spec:
   replicas: 1
   selector:
@@ -116,11 +89,9 @@ spec:
         - name: loki
           image: grafana/loki:2.7.3
           securityContext:
-            runAsUser: 0
+            runAsUser: 0  # Loki sometimes needs root to access volumes
           args:
             - -config.file=/etc/loki/loki-config.yaml
-            - -target=all
-            - -log.level=info
           ports:
             - containerPort: 3100
               name: http
@@ -130,9 +101,9 @@ spec:
               subPath: loki-config.yaml
               readOnly: true
             - name: loki-storage
-              mountPath: /loki
+              mountPath: /loki  # For chunk + index storage
             - name: loki-compactor
-              mountPath: /data
+              mountPath: /data  # For compactor to store data
       volumes:
         - name: loki-config
           configMap:
@@ -160,4 +131,4 @@ spec:
     - name: http
       port: 3100
       targetPort: 3100
-      nodePort: 31031
+      nodePort: 31031  # You can now reach Loki at <NodeIP>:31031

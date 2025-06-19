@@ -1,58 +1,16 @@
 ---
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: grafana-pv
-spec:
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: /mnt/data/grafana
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: manual
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: grafana-storage
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-  storageClassName: manual
-
-# --- GRAFANA SECRET ---
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: grafana-admin-credentials
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
-type: Opaque
-stringData:
-  admin-user: admin
-  admin-password: admin123
-
-# --- GRAFANA CONFIGMAP (DATASOURCE) ---
----
+# ---------------------------------------------------
+#  Grafana Config
+# ---------------------------------------------------
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-datasources
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
-labels:
-  grafana_datasource: "1"
+    argocd.argoproj.io/sync-wave: "6"
+  labels:
+    grafana_datasource: "1"
 data:
   loki-datasource.yaml: |
     apiVersion: 1
@@ -62,16 +20,17 @@ data:
         access: proxy
         url: http://loki:3100
         isDefault: true
-
-# --- GRAFANA DEPLOYMENT ---
 ---
+# ---------------------------------------------------
+#  Grafana Deployment + Service
+# ---------------------------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "6"
+    argocd.argoproj.io/sync-wave: "7"
 spec:
   replicas: 1
   selector:
@@ -112,6 +71,7 @@ spec:
               mountPath: /var/lib/grafana
             - name: grafana-datasources
               mountPath: /etc/grafana/provisioning/datasources
+              readOnly: true
       volumes:
         - name: grafana-storage
           persistentVolumeClaim:
@@ -120,7 +80,6 @@ spec:
           configMap:
             name: grafana-datasources
 
-# --- GRAFANA SERVICE ---
 ---
 apiVersion: v1
 kind: Service

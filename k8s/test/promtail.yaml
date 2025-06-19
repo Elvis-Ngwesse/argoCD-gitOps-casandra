@@ -1,40 +1,7 @@
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: promtail-serviceaccount
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: promtail-clusterrole
-rules:
-  - apiGroups: [""]
-    resources:
-      - nodes
-      - services
-      - pods
-    verbs:
-      - get
-      - watch
-      - list
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: promtail-clusterrolebinding
-subjects:
-  - kind: ServiceAccount
-    name: promtail-serviceaccount
-    namespace: logging
-roleRef:
-  kind: ClusterRole
-  name: promtail-clusterrole
-  apiGroup: rbac.authorization.k8s.io
----
+# ---------------------------------------------------
+# ConfigMap promtail
+# ---------------------------------------------------
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -45,55 +12,68 @@ metadata:
 data:
   promtail.yaml: |
     server:
-      http_listen_port: 9080
-      grpc_listen_port: 0
-
-    clients:
-      - url: http://loki.logging.svc:3100/loki/api/v1/push
-        batchwait: 20s
-        batchsize: 1048576
+      http_listen_port: 9080     # Web interface for debugging (optional)
+      grpc_listen_port: 0        # Disable gRPC, not used
 
     positions:
-      filename: /tmp/positions.yaml
+      filename: /tmp/positions.yaml  # Track last read positions per log file
+
+    clients:
+      - url: http://loki.logging.svc:3100/loki/api/v1/push  # Push logs to Loki
+        batchwait: 20s            # Wait before pushing logs to batch
+        batchsize: 1048576        # Max size of log batch (1MB)
 
     scrape_configs:
+      # Logs from Kubernetes pods
       - job_name: kubernetes-pods
         kubernetes_sd_configs:
           - role: pod
+
         pipeline_stages:
-          - docker: {}
+          - docker: {}  # Parses logs in Docker JSON format
+
         relabel_configs:
           - source_labels: [__meta_kubernetes_pod_node_name]
             target_label: __host__
+
           - action: labelmap
             regex: __meta_kubernetes_pod_label_(.+)
+
           - action: replace
             replacement: $1
             separator: /
             source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_name]
             target_label: job
+
           - action: replace
             source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
+
           - action: replace
             source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
+
           - action: replace
             source_labels: [__meta_kubernetes_pod_container_name]
             target_label: container
-          - replacement: /var/log/pods/*$1/*.log
-            separator: /
+
+          # Path to the log file on the node (in /var/log/pods)
+          - action: replace
+            replacement: /var/log/pods/$1/$2/*.log
             source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
             target_label: __path__
 
+      # System logs from /var/log
       - job_name: varlogs
         static_configs:
           - targets: [localhost]
             labels:
               job: varlogs
               __path__: /var/log/*.log
-
 ---
+# ---------------------------------------------------
+# DaemonSet promtail
+# ---------------------------------------------------
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -127,11 +107,15 @@ spec:
           volumeMounts:
             - name: logs
               mountPath: /var/log
-            - name: promtail-config
-              mountPath: /etc/promtail
             - name: varlibdockercontainers
               mountPath: /var/lib/docker/containers
               readOnly: true
+            - name: promtail-config
+              mountPath: /etc/promtail
+              readOnly: true
+            - name: promtail-positions
+              mountPath: /tmp
+              readOnly: false
       volumes:
         - name: logs
           hostPath:
@@ -142,3 +126,6 @@ spec:
         - name: promtail-config
           configMap:
             name: promtail-config
+        - name: promtail-positions
+          persistentVolumeClaim:
+            claimName: promtail-positions-pvc

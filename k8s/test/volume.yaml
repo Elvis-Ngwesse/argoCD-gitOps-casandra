@@ -1,0 +1,215 @@
+---
+# ---------------------------------------------------
+# 1. PersistentVolume + PVC (mongo-pv)
+# ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mongo-pv
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/mongo
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-pvc
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: mongo-pv
+  storageClassName: ""
+---
+# ---------------------------------------------------
+# 2. PersistentVolume + PVC (grafana-pv)
+# ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grafana-pv
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/grafana
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-storage
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: manual
+
+---
+# ---------------------------------------------------
+# 3. PersistentVolume + PVC (loki-storage-pvc)
+# ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-storage-pvc
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: standard
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-compactor-pvc
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+---
+# ---------------------------------------------------
+# 4. PersistentVolume + PVC (promtail-positions-pv)
+# ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: promtail-positions-pv
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/promtail-positions
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: promtail-positions-pvc
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: promtail-positions-pv
+
+---
+# ---------------------------------------------------
+# 5. PersistentVolume + PVC (prometheus-pv)
+# ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: prometheus-pv
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/prometheus
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-pvc
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  volumeName: prometheus-pv
+
+---
+# ---------------------------------------------------
+# 6. PersistentVolume + PVC (grafana-storage)
+# ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-storage
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+
+---
+# ---------------------------------------------------
+# 7. PersistentVolume + PVC (grafana-agent-wal-pvc)
+# ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-agent-wal-pvc
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard

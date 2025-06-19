@@ -1,113 +1,60 @@
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: grafana-agent
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: grafana-agent-logs-metrics
-rules:
-  - apiGroups: [""]
-    resources:
-      - pods
-      - namespaces
-      - nodes
-      - nodes/proxy
-      - endpoints
-      - services
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - metrics.k8s.io
-    resources:
-      - pods
-      - nodes
-    verbs:
-      - get
-      - list
-      - watch
-  - nonResourceURLs:
-      - "/metrics"
-      - "/metrics/cadvisor"
-      - "/metrics/resource"
-    verbs:
-      - get
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: grafana-agent-logs-metrics
-subjects:
-  - kind: ServiceAccount
-    name: grafana-agent
-    namespace: logging
-roleRef:
-  kind: ClusterRole
-  name: grafana-agent-logs-metrics
-  apiGroup: rbac.authorization.k8s.io
----
+# ---------------------------------------------------
+# Grafana Agent ConfigMap
+# ---------------------------------------------------
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-agent-config
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "7"
 data:
   agent.yaml: |
     server:
-      log_level: info
+      log_level: info  # Set logging verbosity to info level
 
     metrics:
-      wal_directory: /tmp/wal
+      wal_directory: /tmp/wal  # Directory for write-ahead log (WAL) persistence
       global:
-        scrape_interval: 60s
+        scrape_interval: 60s  # Scrape metrics every 60 seconds globally
       configs:
         - name: kubernetes
           scrape_configs:
-            - job_name: 'kubelet-cadvisor'
+            - job_name: 'kubelet-cadvisor'  # Scrape kubelet cAdvisor metrics on nodes
               scheme: https
               tls_config:
                 ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-                insecure_skip_verify: false
+                insecure_skip_verify: false  # Verify TLS cert
               bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
               kubernetes_sd_configs:
                 - role: node
               relabel_configs:
                 - source_labels: [__address__]
                   regex: '(.*):10250'
-                  replacement: '${1}:10250'
+                  replacement: '${1}:10250'  # Ensure correct port for kubelet metrics
                   target_label: __address__
-              metrics_path: /metrics/cadvisor
-            
-            - job_name: 'argocd-flask-apps'
+              metrics_path: /metrics/cadvisor  # Target cAdvisor metrics endpoint
+    
+            - job_name: 'argocd-flask-apps'  # Scrape metrics from specific apps in 'test' namespace
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
                 - source_labels: [__meta_kubernetes_namespace]
                   action: keep
-                  regex: test
+                  regex: test  # Keep only pods in 'test' namespace
                 - source_labels: [__meta_kubernetes_pod_label_app]
                   action: keep
-                  regex: argocd-app|flask-minio
+                  regex: argocd-app|flask-minio  # Keep only specific apps
                 - source_labels: [__meta_kubernetes_pod_container_port_name]
                   action: keep
-                  regex: metrics|http|web|prometheus|9102|5000|5002
+                  regex: metrics|http|web|prometheus|9102|5000|5002  # Keep relevant ports
                 - source_labels: [__meta_kubernetes_pod_ip]
                   target_label: __address__
                   regex: (.+)
-                  replacement: $1:9102
+                  replacement: $1:9102  # Target port for app metrics
 
-            - job_name: 'kubelet'
+            - job_name: 'kubelet'  # Scrape kubelet resource metrics
               scheme: https
               tls_config:
                 ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
@@ -122,11 +69,11 @@ data:
                   target_label: __address__
               metrics_path: /metrics/resource
 
-            - job_name: 'kube-state-metrics'
+            - job_name: 'kube-state-metrics'  # Scrape kube-state-metrics from default location
               static_configs:
                 - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
 
-            - job_name: 'kubernetes-pods-metrics'
+            - job_name: 'kubernetes-pods-metrics'  # Scrape pod-level metrics on port 9102
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
@@ -140,15 +87,14 @@ data:
                   target_label: pod
                 - source_labels: [__meta_kubernetes_pod_container_name]
                   target_label: container
-            
 
     logs:
       configs:
         - name: default
           positions:
-            filename: /tmp/positions.yaml
+            filename: /tmp/positions.yaml  # Track log reading positions to avoid duplicate reads
           clients:
-            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
+            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push  # Loki ingestion endpoint
           scrape_configs:
             - job_name: kubernetes-pods
               kubernetes_sd_configs:
@@ -162,36 +108,25 @@ data:
                   target_label: pod
                 - source_labels: [__meta_kubernetes_pod_node_name]
                   action: keep
-                  regex: ${NODE_NAME}
+                  regex: ${HOSTNAME}  # Only scrape logs from the node the agent runs on
                 - source_labels: [__meta_kubernetes_namespace]
                   action: drop
-                  regex: grafana-agent
+                  regex: grafana-agent  # Avoid scraping its own logs
                 - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
                   target_label: __path__
-                  replacement: /var/log/pods/*$1/*.log
+                  replacement: /var/log/pods/*$1/*.log  # Path pattern for pod container logs
+
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: grafana-agent-wal-pvc
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-  storageClassName: standard
----
+# ---------------------------------------------------
+# Grafana Agent Service + Deployment
+# ---------------------------------------------------
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: grafana-agent
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "8"
 spec:
   selector:
     matchLabels:
@@ -203,30 +138,30 @@ spec:
     spec:
       serviceAccountName: grafana-agent
       securityContext:
-        runAsUser: 0
+        runAsUser: 0  # Run container as root user (required for access to logs)
       containers:
         - name: grafana-agent
           image: grafana/agent:v0.43.2
           env:
-            - name: NODE_NAME
+            - name: HOSTNAME
               valueFrom:
                 fieldRef:
-                  fieldPath: spec.nodeName
+                  fieldPath: spec.nodeName  # Pass node name into container env var for log filtering
           args:
             - --config.file=/etc/agent/agent.yaml
           volumeMounts:
             - name: config
-              mountPath: /etc/agent
+              mountPath: /etc/agent  # Mount config map here
             - name: varlog
-              mountPath: /var/log
+              mountPath: /var/log  # Access node logs
               readOnly: true
             - name: dockercontainers
-              mountPath: /var/lib/docker/containers
+              mountPath: /var/lib/docker/containers  # Access docker container logs
               readOnly: true
             - name: positions
-              mountPath: /tmp
+              mountPath: /tmp  # Persist log reading positions here
             - name: wal
-              mountPath: /tmp/wal
+              mountPath: /tmp/wal  # Persist WAL for metrics
           resources:
             requests:
               cpu: "100m"
@@ -236,7 +171,7 @@ spec:
               memory: "500Mi"
           livenessProbe:
             httpGet:
-              path: /-/ready
+              path: /-/ready  # Readiness endpoint for health checks
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 30
@@ -245,15 +180,15 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: grafana-agent-config
+            name: grafana-agent-config  # Use the configmap defined above
         - name: varlog
           hostPath:
-            path: /var/log
+            path: /var/log  # Host log directory
         - name: dockercontainers
           hostPath:
-            path: /var/lib/docker/containers
+            path: /var/lib/docker/containers  # Docker containers logs directory
         - name: positions
-          emptyDir: {}
+          emptyDir: {}  # Ephemeral storage for log reading positions
         - name: wal
           persistentVolumeClaim:
-            claimName: grafana-agent-wal-pvc
+            claimName: grafana-agent-wal-pvc  # PVC to persist WAL data
