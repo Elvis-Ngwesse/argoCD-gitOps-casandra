@@ -35,13 +35,13 @@ spec:
               value: "mongodb://mongo-service:27017"
           readinessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: 5000
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: 5000
             initialDelaySeconds: 15
             periodSeconds: 20
@@ -120,13 +120,13 @@ spec:
                   key: secretkey
           readinessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: 5002
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /
+              path: /healthz
               port: 5002
             initialDelaySeconds: 15
             periodSeconds: 20
