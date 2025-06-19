@@ -4,6 +4,7 @@ import os
 from urllib.parse import urlparse, urlunparse
 import logging
 import sys
+from prometheus_flask_exporter import PrometheusMetrics  # ✅ Metrics
 
 # ---------------------------------------
 # ✅ Logging Setup
@@ -21,6 +22,9 @@ logger = logging.getLogger("minio-url-service")
 app = Flask(__name__)
 app.logger.addHandler(logging.StreamHandler(sys.stdout))
 app.logger.setLevel(logging.INFO)
+
+# ✅ Prometheus Metrics
+metrics = PrometheusMetrics(app)
 
 # ---------------------------------------
 # 🔐 Load MinIO Environment Variables
@@ -49,7 +53,6 @@ s3 = boto3.client(
 # For local development, replace MinIO hostname with this
 LOCAL_HOST = 'localhost:9000'
 
-
 @app.route('/presigned-urls')
 def presigned_urls():
     logger.info("📥 Received request to generate presigned URLs")
@@ -72,7 +75,6 @@ def presigned_urls():
                 Params={'Bucket': bucket, 'Key': key},
                 ExpiresIn=3600  # 1 hour
             )
-            # Replace URL hostname with localhost for local access
             parsed = urlparse(url)
             local_url = urlunparse(parsed._replace(netloc=LOCAL_HOST))
             urls[key] = local_url
@@ -81,7 +83,6 @@ def presigned_urls():
             logger.warning("⚠️ Failed to generate URL for key %s: %s", key, e)
 
     return jsonify(urls)
-
 
 # ---------------------------------------
 # 🚀 Run the App

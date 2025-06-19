@@ -356,20 +356,6 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 20
 
-        # Add this sidecar container for metrics exporter:
-        - name: metrics-exporter
-          image: prom/node-exporter:latest
-          ports:
-            - containerPort: 9102
-              name: metrics
-          resources:
-            requests:
-              cpu: 50m
-              memory: 50Mi
-            limits:
-              cpu: 100m
-              memory: 100Mi
-
 ---
 apiVersion: v1
 kind: Service
@@ -430,19 +416,6 @@ spec:
                 secretKeyRef:
                   name: minio-creds
                   key: secretkey
-            # Add sidecar container here as well:
-            - name: metrics-exporter
-              image: prom/node-exporter:latest
-              ports:
-                - containerPort: 9102
-                  name: metrics
-              resources:
-                requests:
-                  cpu: 50m
-                  memory: 50Mi
-                limits:
-                  cpu: 100m
-                  memory: 100Mi
 
 ---
 apiVersion: v1

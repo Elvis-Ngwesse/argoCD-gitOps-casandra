@@ -8,6 +8,7 @@ import os
 import sys
 import logging
 from datetime import datetime
+from prometheus_flask_exporter import PrometheusMetrics  # ✅ Prometheus metrics
 
 # ---------------------------------------
 # ✅ Logging Setup (for Promtail to capture)
@@ -22,6 +23,9 @@ logger = logging.getLogger("customer-generator")
 app = Flask(__name__)
 app.logger.addHandler(logging.StreamHandler(sys.stdout))
 app.logger.setLevel(logging.INFO)
+
+# ✅ Prometheus metrics
+metrics = PrometheusMetrics(app)
 
 # ---------------------------------------
 # 🧱 Setup MongoDB
