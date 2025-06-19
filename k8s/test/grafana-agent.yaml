@@ -58,7 +58,7 @@ data:
       global:
         scrape_interval: 60s
         remote_write:
-        - url: http://prometheus.monitoring.svc.cluster.local:9090/api/v1/write
+        - url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
         
         
         configs:
