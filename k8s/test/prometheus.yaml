@@ -62,7 +62,9 @@ spec:
       labels:
         app: prometheus
     spec:
-      serviceAccountName: grafana-agent  # Needed for discovery permissions
+      serviceAccountName: grafana-agent
+      securityContext:
+        fsGroup: 65534  # allow group write to mounted volume
       containers:
         - name: prometheus
           image: prom/prometheus:v2.52.0
