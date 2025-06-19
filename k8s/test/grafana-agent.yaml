@@ -57,14 +57,12 @@ data:
       wal_directory: /tmp/wal
       global:
         scrape_interval: 60s
-        remote_write: 
-        - url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
-        
-        
+        remote_write:
+          - url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
+    
       configs:
         - name: kubernetes
           scrape_configs:
-            # Scrape kubelet /metrics/cadvisor for container CPU/memory usage
             - job_name: 'kubelet-cadvisor'
               scheme: https
               tls_config:
@@ -79,8 +77,7 @@ data:
                   replacement: '${1}:10250'
                   target_label: __address__
               metrics_path: /metrics/cadvisor
-
-            # Scrape kubelet /metrics/resource for pod-level CPU/memory metrics
+    
             - job_name: 'kubelet'
               scheme: https
               tls_config:
@@ -95,8 +92,7 @@ data:
                   replacement: '${1}:10250'
                   target_label: __address__
               metrics_path: /metrics/resource
-
-            # Scrape kube-state-metrics for Kubernetes object states (pods, nodes, etc.)
+    
             - job_name: 'kube-state-metrics'
               static_configs:
                 - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
