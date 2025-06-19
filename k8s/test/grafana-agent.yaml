@@ -47,7 +47,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 data:
-  agent.yaml: |
+  agent.river: |
     agent:
       mode: flow
       mounts:
@@ -153,7 +153,7 @@ spec:
         - name: grafana-agent
           image: grafana/agent:v0.40.2
           args:
-            - --config.file=/etc/agent/agent.yaml
+            - --config.file=/etc/agent/agent.river
           volumeMounts:
             - name: config
               mountPath: /etc/agent
