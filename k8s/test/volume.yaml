@@ -36,7 +36,7 @@ spec:
   storageClassName: ""
 ---
 # ---------------------------------------------------
-# 2. PersistentVolume + PVC (grafana-pv)
+# 2. PersistentVolume + PVC (Grafana-pv-pvc)
 # ---------------------------------------------------
 apiVersion: v1
 kind: PersistentVolume
