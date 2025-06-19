@@ -68,11 +68,25 @@ data:
       log_level: info
 
     metrics:
-      wal_directory: /tmp/wal
+      # Disable WAL to avoid replay of old samples causing out-of-order errors
+      wal_directory: ""
+
       global:
         scrape_interval: 60s
+
         remote_write:
           - url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
+            # Optional tuning to improve robustness:
+            queue_config:
+              capacity: 2500
+              max_shards: 200
+              max_samples_per_send: 1000
+              batch_send_deadline: 5s
+              retry_on_http_429: true
+              min_backoff: 1s
+              max_backoff: 30s
+            # Disable sending exemplars if not used (optional)
+            send_exemplars: false
 
       configs:
         - name: kubernetes
@@ -115,15 +129,18 @@ data:
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
+                # Only keep pods in 'test' or 'logging' namespaces
                 - source_labels: [__meta_kubernetes_namespace]
                   action: keep
                   regex: test|logging
 
+                # Target pod IP with metrics port (adjust port as needed)
                 - source_labels: [__meta_kubernetes_pod_ip]
                   regex: (.+)
                   replacement: $1:9102
                   target_label: __address__
 
+                # Add labels for namespace, pod, container
                 - source_labels: [__meta_kubernetes_namespace]
                   target_label: namespace
                 - source_labels: [__meta_kubernetes_pod_name]
@@ -158,7 +175,6 @@ data:
                 - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
                   target_label: __path__
                   replacement: /var/log/pods/*$1/*.log
-
 ---
 apiVersion: apps/v1
 kind: DaemonSet
