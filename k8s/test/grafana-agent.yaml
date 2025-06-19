@@ -12,7 +12,7 @@ metadata:
 data:
   agent.yaml: |
     server:
-      log_level: info  # Set logging verbosity to info level
+      log_level: debug  # Set logging verbosity to info level
 
     metrics:
       wal_directory: /tmp/wal  # Directory for write-ahead log (WAL) persistence
