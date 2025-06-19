@@ -154,7 +154,8 @@ spec:
           image: grafana/agent:v0.41.0
           args:
             - --config.file=/etc/agent/agent.river
-            - --config.file.type=river
+            - --config.file.type=dynamic
+            - --enable-features=agent-management,integrations-next
           volumeMounts:
             - name: config
               mountPath: /etc/agent
