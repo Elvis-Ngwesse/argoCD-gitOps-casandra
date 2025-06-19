@@ -230,31 +230,17 @@ spec:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: mongo-pv
-  namespace: test
+  name: mongo-pv-0
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   capacity:
     storage: 1Gi
   accessModes:
     - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
   hostPath:
     path: /mnt/data/mongo-0
     type: DirectoryOrCreate
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: ""
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mongo-pvc
-  namespace: test
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: ""
-  volumeName: mongo-pv
+
