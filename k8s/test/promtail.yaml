@@ -44,9 +44,6 @@ metadata:
     argocd.argoproj.io/sync-wave: "6"
 data:
   promtail.yaml: |
-    
-    positions:
-      sync_period: 200s
     server:
       http_listen_port: 9080
       grpc_listen_port: 0
