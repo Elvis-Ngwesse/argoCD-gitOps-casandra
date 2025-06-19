@@ -110,6 +110,20 @@ spec:
     path: /mnt/data/loki/compactor
     type: DirectoryOrCreate
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-compactor-pvc
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "6"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
 # ---------------------------------------------------
 # 4. PersistentVolume + PVC (promtail-positions-pv)
 # ---------------------------------------------------
