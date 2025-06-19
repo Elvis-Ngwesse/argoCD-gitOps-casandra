@@ -2,85 +2,53 @@
 # ---------------------------------------------------
 # Grafana Agent ConfigMap
 # ---------------------------------------------------
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-agent-config
   namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
 data:
   agent.yaml: |
     server:
-      log_level: debug  # Set logging verbosity to info level
+      log_level: debug
 
     metrics:
-      wal_directory: /tmp/wal  # Directory for write-ahead log (WAL) persistence
+      wal_directory: /tmp/wal
       global:
-        scrape_interval: 60s  # Scrape metrics every 60 seconds globally
+        scrape_interval: 60s
       configs:
-        - name: kubernetes
+        - name: kubernetes-pods
           scrape_configs:
-            - job_name: 'kubelet-cadvisor'  # Scrape kubelet cAdvisor metrics on nodes
-              scheme: https
-              tls_config:
-                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-                insecure_skip_verify: false  # Verify TLS cert
-              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-              kubernetes_sd_configs:
-                - role: node
-              relabel_configs:
-                - source_labels: [__address__]
-                  regex: '(.*):10250'
-                  replacement: '${1}:10250'  # Ensure correct port for kubelet metrics
-                  target_label: __address__
-              metrics_path: /metrics/cadvisor  # Target cAdvisor metrics endpoint
-    
-            - job_name: 'argocd-flask-apps'  # Scrape metrics from specific apps in 'test' namespace
+            - job_name: 'kubernetes-pods-5000'
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
                 - source_labels: [__meta_kubernetes_namespace]
                   action: keep
-                  regex: test  # Keep only pods in 'test' namespace
-                - source_labels: [__meta_kubernetes_pod_label_app]
-                  action: keep
-                  regex: argocd-app|flask-minio  # Keep only specific apps
-                - source_labels: [__meta_kubernetes_pod_container_port_name]
-                  action: keep
-                  regex: metrics|http|web|prometheus|9102|5000|5002  # Keep relevant ports
+                  regex: test|logging
                 - source_labels: [__meta_kubernetes_pod_ip]
                   target_label: __address__
                   regex: (.+)
-                  replacement: $1:9102  # Target port for app metrics
+                  replacement: $1:5000
+                - source_labels: [__meta_kubernetes_namespace]
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  target_label: pod
+                - source_labels: [__meta_kubernetes_pod_container_name]
+                  target_label: container
 
-            - job_name: 'kubelet'  # Scrape kubelet resource metrics
-              scheme: https
-              tls_config:
-                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-                insecure_skip_verify: false
-              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-              kubernetes_sd_configs:
-                - role: node
-              relabel_configs:
-                - source_labels: [__address__]
-                  regex: '(.*):10250'
-                  replacement: '${1}:10250'
-                  target_label: __address__
-              metrics_path: /metrics/resource
-
-            - job_name: 'kube-state-metrics'  # Scrape kube-state-metrics from default location
-              static_configs:
-                - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
-
-            - job_name: 'kubernetes-pods-metrics'  # Scrape pod-level metrics on port 9102
+            - job_name: 'kubernetes-pods-5002'
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: keep
+                  regex: test|logging
                 - source_labels: [__meta_kubernetes_pod_ip]
-                  regex: (.+)
-                  replacement: $1:9102
                   target_label: __address__
+                  regex: (.+)
+                  replacement: $1:5002
                 - source_labels: [__meta_kubernetes_namespace]
                   target_label: namespace
                 - source_labels: [__meta_kubernetes_pod_name]
@@ -90,31 +58,31 @@ data:
 
     logs:
       configs:
-        - name: default
+        - name: kubernetes-pods-logs
           positions:
-            filename: /tmp/positions.yaml  # Track log reading positions to avoid duplicate reads
+            filename: /tmp/positions.yaml
           clients:
-            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push  # Loki ingestion endpoint
+            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
           scrape_configs:
-            - job_name: kubernetes-pods
+            - job_name: kubernetes-pods-logs
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
                 - source_labels: [__meta_kubernetes_namespace]
+                  action: keep
+                  regex: test|logging
+                - source_labels: [__meta_kubernetes_pod_name]
+                  action: drop
+                  regex: grafana-agent.*
+                - source_labels: [__meta_kubernetes_namespace]
                   target_label: namespace
-                - source_labels: [__meta_kubernetes_pod_container_name]
-                  target_label: container
                 - source_labels: [__meta_kubernetes_pod_name]
                   target_label: pod
-                - source_labels: [__meta_kubernetes_pod_node_name]
-                  action: keep
-                  regex: ${HOSTNAME}  # Only scrape logs from the node the agent runs on
-                - source_labels: [__meta_kubernetes_namespace]
-                  action: drop
-                  regex: grafana-agent  # Avoid scraping its own logs
+                - source_labels: [__meta_kubernetes_pod_container_name]
+                  target_label: container
                 - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
                   target_label: __path__
-                  replacement: /var/log/pods/*$1/*.log  # Path pattern for pod container logs
+                  replacement: /var/log/pods/${1}/*${2}.log
 
 ---
 # ---------------------------------------------------
