@@ -44,13 +44,16 @@ metadata:
     argocd.argoproj.io/sync-wave: "6"
 data:
   promtail.yaml: |
+    
+    positions:
+      sync_period: 200s
     server:
       http_listen_port: 9080
       grpc_listen_port: 0
 
     clients:
       - url: http://loki.logging.svc:3100/loki/api/v1/push
-        batchwait: 1s
+        batchwait: 20s
         batchsize: 1048576
 
     positions:
