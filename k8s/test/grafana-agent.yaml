@@ -151,7 +151,7 @@ spec:
         runAsUser: 0  # Needs root to read /var/log/pods/*.log
       containers:
         - name: grafana-agent
-          image: grafana/agent:v0.41.0
+          image: grafana/agent:v0.45.0
           args:
             - --config.file=/etc/agent/agent.river
             - --config.file.type=dynamic
