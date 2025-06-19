@@ -52,10 +52,6 @@ data:
       - url: http://loki.logging.svc:3100/loki/api/v1/push
         batchwait: 1s
         batchsize: 1048576
-        backoff_config:
-          min_delay: 500ms
-          max_delay: 5s
-          max_retries: 10
 
     positions:
       filename: /tmp/positions.yaml
