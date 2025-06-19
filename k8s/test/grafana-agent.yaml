@@ -88,6 +88,24 @@ data:
                   replacement: '${1}:10250'
                   target_label: __address__
               metrics_path: /metrics/cadvisor
+            
+            - job_name: 'argocd-flask-apps'
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: keep
+                  regex: test
+                - source_labels: [__meta_kubernetes_pod_label_app]
+                  action: keep
+                  regex: argocd-app|flask-minio
+                - source_labels: [__meta_kubernetes_pod_container_port_name]
+                  action: keep
+                  regex: metrics|http|web|prometheus|9102|5000|5002
+                - source_labels: [__meta_kubernetes_pod_ip]
+                  target_label: __address__
+                  regex: (.+)
+                  replacement: $1:9102
 
             - job_name: 'kubelet'
               scheme: https
@@ -122,6 +140,7 @@ data:
                   target_label: pod
                 - source_labels: [__meta_kubernetes_pod_container_name]
                   target_label: container
+            
 
     logs:
       configs:
