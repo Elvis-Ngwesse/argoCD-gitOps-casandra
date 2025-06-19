@@ -85,7 +85,7 @@ spec:
   resources:
     requests:
       storage: 20Gi
-  storageClassName: standard
+  storageClassName: ""
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -100,7 +100,7 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: standard
+  storageClassName: ""
 ---
 # ---------------------------------------------------
 # 4. PersistentVolume + PVC (promtail-positions-pv)
@@ -134,6 +134,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: ""
   resources:
     requests:
       storage: 1Gi
@@ -194,4 +195,4 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: standard
+  storageClassName: ""
