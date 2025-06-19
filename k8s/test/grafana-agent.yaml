@@ -11,14 +11,16 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: grafana-agent-logs
+  name: grafana-agent-logs-metrics
 rules:
   - apiGroups: [""]
     resources:
       - pods
       - namespaces
       - nodes
-      - nodes/proxy   # Optional for kubelet/cadvisor if needed later
+      - nodes/proxy
+      - endpoints
+      - services
     verbs:
       - get
       - list
@@ -28,14 +30,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: grafana-agent-logs
+  name: grafana-agent-logs-metrics
 subjects:
   - kind: ServiceAccount
     name: grafana-agent
     namespace: logging
 roleRef:
   kind: ClusterRole
-  name: grafana-agent-logs
+  name: grafana-agent-logs-metrics
   apiGroup: rbac.authorization.k8s.io
 
 ---
@@ -55,6 +57,68 @@ data:
       wal_directory: /tmp/wal
       global:
         scrape_interval: 60s
+
+      configs:
+        - name: kubernetes
+          scrape_configs:
+            # Scrape kubelet /metrics/cadvisor for container CPU/memory usage
+            - job_name: 'kubelet-cadvisor'
+              scheme: https
+              tls_config:
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                insecure_skip_verify: false
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              kubernetes_sd_configs:
+                - role: node
+              relabel_configs:
+                - source_labels: [__address__]
+                  regex: '(.*):10250'
+                  replacement: '${1}:10250'
+                  target_label: __address__
+              metrics_path: /metrics/cadvisor
+
+            # Scrape kubelet /metrics/resource for pod-level CPU/memory metrics
+            - job_name: 'kubelet'
+              scheme: https
+              tls_config:
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                insecure_skip_verify: false
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              kubernetes_sd_configs:
+                - role: node
+              relabel_configs:
+                - source_labels: [__address__]
+                  regex: '(.*):10250'
+                  replacement: '${1}:10250'
+                  target_label: __address__
+              metrics_path: /metrics/resource
+
+            # Scrape kube-state-metrics for Kubernetes object states (pods, nodes, etc.)
+            - job_name: 'kube-state-metrics'
+              static_configs:
+                - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+
+        - name: logs
+          scrape_configs:
+            - job_name: kubernetes-pods
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_namespace]
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_container_name]
+                  target_label: container
+                - source_labels: [__meta_kubernetes_pod_name]
+                  target_label: pod
+                - source_labels: [__meta_kubernetes_pod_node_name]
+                  action: keep
+                  regex: ${HOSTNAME}
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: drop
+                  regex: grafana-agent
+                - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+                  target_label: __path__
+                  replacement: /var/log/pods/*$1/*.log
 
     logs:
       configs:
@@ -103,7 +167,7 @@ spec:
     spec:
       serviceAccountName: grafana-agent
       securityContext:
-        runAsUser: 0
+        runAsUser: 0  # Needed to read /var/log/pods/*.log
       containers:
         - name: grafana-agent
           image: grafana/agent:v0.43.2
