@@ -57,11 +57,11 @@ data:
       wal_directory: /tmp/wal
       global:
         scrape_interval: 60s
-        remote_write:
+        remote_write: 
         - url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
         
         
-        configs:
+      configs:
         - name: kubernetes
           scrape_configs:
             # Scrape kubelet /metrics/cadvisor for container CPU/memory usage
