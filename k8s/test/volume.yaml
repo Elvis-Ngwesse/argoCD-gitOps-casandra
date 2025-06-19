@@ -226,3 +226,22 @@ spec:
   hostPath:
     path: /mnt/data/grafana-agent-wal
     type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mongo-pv-0
+  namespace: test
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/data/mongo-0
+    type: DirectoryOrCreate
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+
