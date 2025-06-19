@@ -41,7 +41,7 @@ metadata:
   name: promtail-config
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "6"
 data:
   promtail.yaml: |
     server:
@@ -50,12 +50,12 @@ data:
 
     clients:
       - url: http://loki.logging.svc:3100/loki/api/v1/push
-        batchwait: 1s          # how long to wait before sending a batch
-        batchsize: 1048576     # max batch size in bytes (1 MB default)
+        batchwait: 1s
+        batchsize: 1048576
         backoff_config:
-          minbackoff: 500ms
-          maxbackoff: 5s
-          maxretries: 10
+          min_delay: 500ms
+          max_delay: 5s
+          max_retries: 10
 
     positions:
       filename: /tmp/positions.yaml
@@ -96,6 +96,7 @@ data:
             labels:
               job: varlogs
               __path__: /var/log/*.log
+
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -103,7 +104,7 @@ metadata:
   name: promtail
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "7"
   labels:
     app: promtail
 spec:
