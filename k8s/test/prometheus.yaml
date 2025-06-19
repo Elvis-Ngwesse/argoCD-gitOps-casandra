@@ -64,7 +64,8 @@ spec:
     spec:
       serviceAccountName: grafana-agent
       securityContext:
-        fsGroup: 65534  # allow group write to mounted volume
+        runAsUser: 0
+        runAsGroup: 0
       containers:
         - name: prometheus
           image: prom/prometheus:v2.52.0
