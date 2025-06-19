@@ -5,7 +5,7 @@ WORKDIR /app
 COPY app2/ /app
 
 RUN pip install flask boto3
-pip install prometheus_flask_exporter
+RUN pip install prometheus_flask_exporter
 
 ENV MINIO_ENDPOINT=http://minio-service:9000
 ENV MINIO_BUCKET=test-reports
