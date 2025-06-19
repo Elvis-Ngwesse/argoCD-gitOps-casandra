@@ -155,20 +155,6 @@ data:
                   replacement: /var/log/pods/*$1/*.log
 
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: grafana-agent-wal-pvc
-  namespace: logging
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: standard
-  resources:
-    requests:
-      storage: 5Gi
-
----
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -239,5 +225,6 @@ spec:
         - name: positions
           emptyDir: {}
         - name: wal
-          persistentVolumeClaim:
-            claimName: grafana-agent-wal-pvc
+          hostPath:
+            path: /var/lib/grafana-agent/wal
+            type: DirectoryOrCreate
