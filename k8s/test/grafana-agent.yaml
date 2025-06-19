@@ -47,89 +47,54 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 data:
-  agent.river: |
-    agent {
-      mode = "flow"
-      mounts {
-        varlog = true
-      }
-    }
+  agent.yaml: |
+    server:
+      log_level: info
 
-    logging {
-      level  = "info"
-      format = "logfmt"
-    }
+    metrics:
+      wal_directory: /tmp/wal
+      global:
+        scrape_interval: 60s
 
-    discovery.kubernetes "pods" {
-      role = "pod"
-    }
+    logs:
+      configs:
+        - name: default
+          positions:
+            filename: /tmp/positions.yaml
+          clients:
+            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
+          target_config:
+            sync_period: 10s
+          pipeline_stages:
+            - cri: {}
 
-    discovery.kubernetes "nodes" {
-      role = "node"
-    }
+          static_configs:
+            - targets:
+                - localhost
+              labels:
+                job: kubernetes-pods
+                __path__: /var/log/pods/*/*.log
 
-    discovery.relabel "logs" {
-      targets = discovery.kubernetes.pods.targets
+    discovery:
+      kubernetes:
+        pods:
+          role: pod
+        nodes:
+          role: node
 
-      rule {
-        source_labels = ["__meta_kubernetes_namespace"]
-        target_label  = "namespace"
-      }
-
-      rule {
-        source_labels = ["__meta_kubernetes_pod_container_name"]
-        target_label  = "container"
-      }
-
-      rule {
-        source_labels = ["__meta_kubernetes_pod_name"]
-        target_label  = "pod"
-      }
-
-      rule {
-        source_labels = ["__meta_kubernetes_pod_node_name"]
-        action = "keep"
-        regex = env("HOSTNAME")
-      }
-
-      rule {
-        source_labels = ["__meta_kubernetes_namespace"]
-        action = "drop"
-        regex = "grafana-agent"
-      }
-
-      rule {
-        source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
-        target_label  = "__path__"
-        separator     = "/"
-        replacement   = "/var/log/pods/*$1/*.log"
-      }
-    }
-
-    local.file_match "logs" {
-      path_targets = discovery.relabel.logs.output
-    }
-
-    loki.source.file "pods" {
-      targets    = local.file_match.logs.targets
-      forward_to = [loki.process.logs.receiver]
-    }
-
-    loki.process "logs" {
-      stage.cri {}
-      forward_to = [loki.write.local.receiver]
-    }
-
-    loki.source.kubernetes_events "events" {
-      log_format = "json"
-      forward_to = [loki.write.local.receiver]
-    }
-
-    loki.write "local" {
-      endpoint {
-        url = "http://loki.logging.svc.cluster.local:3100/loki/api/v1/push"
-      }
-    }
+    relabel_configs:
+      - source_labels: ["__meta_kubernetes_namespace"]
+        target_label: "namespace"
+      - source_labels: ["__meta_kubernetes_pod_container_name"]
+        target_label: "container"
+      - source_labels: ["__meta_kubernetes_pod_name"]
+        target_label: "pod"
+      - source_labels: ["__meta_kubernetes_pod_node_name"]
+        action: keep
+        regex: ${HOSTNAME}
+      - source_labels: ["__meta_kubernetes_namespace"]
+        action: drop
+        regex: "grafana-agent"
 
 ---
 apiVersion: apps/v1
@@ -150,13 +115,12 @@ spec:
     spec:
       serviceAccountName: grafana-agent
       securityContext:
-        runAsUser: 0  # Needs root to read /var/log/pods/*.log
+        runAsUser: 0
       containers:
         - name: grafana-agent
           image: grafana/agent:v0.43.2
           args:
-            - --config.file=/etc/agent/agent.river
-            - --enable-features=agent-management,integrations-next
+            - --config.file=/etc/agent/agent.yaml
           volumeMounts:
             - name: config
               mountPath: /etc/agent
@@ -178,7 +142,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /-/ready
-              port: 8080   # changed to a standard port (see note below)
+              port: 8080
             initialDelaySeconds: 10
             periodSeconds: 30
           ports:
