@@ -206,19 +206,23 @@ spec:
     requests:
       storage: 5Gi
   storageClassName: ""
-  volumeName: grafana-agent-wal-pvc
+  volumeName: grafana-agent-wal-pv
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: PersistentVolume
 metadata:
-  name: grafana-agent-wal-pvc
-  namespace: logging
+  name: grafana-agent-wal-pv
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: "2"
+  labels:
+    type: local
 spec:
+  capacity:
+    storage: 5Gi
   accessModes:
     - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
+  persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
+  hostPath:
+    path: /mnt/data/grafana-agent-wal
+    type: DirectoryOrCreate
