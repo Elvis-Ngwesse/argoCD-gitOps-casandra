@@ -40,6 +40,7 @@ rules:
       - "/metrics/resource"
     verbs:
       - get
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -68,15 +69,11 @@ data:
       log_level: info
 
     metrics:
-      # Disable WAL to avoid replay of old samples causing out-of-order errors
-      wal_directory: ""
-
+      wal_directory: /tmp/wal
       global:
         scrape_interval: 60s
-
         remote_write:
           - url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
-            # Optional tuning to improve robustness:
             queue_config:
               capacity: 2500
               max_shards: 200
@@ -85,7 +82,6 @@ data:
               retry_on_http_429: true
               min_backoff: 1s
               max_backoff: 30s
-            # Disable sending exemplars if not used (optional)
             send_exemplars: false
 
       configs:
@@ -175,6 +171,7 @@ data:
                 - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
                   target_label: __path__
                   replacement: /var/log/pods/*$1/*.log
+
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -192,7 +189,6 @@ spec:
       labels:
         app: grafana-agent
     spec:
-      restartPolicy: Always
       serviceAccountName: grafana-agent
       securityContext:
         runAsUser: 0  # Needed to read /var/log/pods/*.log
@@ -217,31 +213,21 @@ spec:
               readOnly: true
             - name: positions
               mountPath: /tmp
+            - name: wal
+              mountPath: /tmp/wal
           resources:
             requests:
-              cpu: "200m"
-              memory: "500Mi"
+              cpu: "100m"
+              memory: "200Mi"
             limits:
-              cpu: "1"
-              memory: "1Gi"
+              cpu: "500m"
+              memory: "500Mi"
           livenessProbe:
             httpGet:
               path: /-/ready
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 30
-          readinessProbe:
-            httpGet:
-              path: /-/ready
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          startupProbe:
-            httpGet:
-              path: /-/ready
-              port: 8080
-            failureThreshold: 30
-            periodSeconds: 10
           ports:
             - containerPort: 8080
       volumes:
@@ -255,4 +241,6 @@ spec:
           hostPath:
             path: /var/lib/docker/containers
         - name: positions
+          emptyDir: {}
+        - name: wal
           emptyDir: {}
