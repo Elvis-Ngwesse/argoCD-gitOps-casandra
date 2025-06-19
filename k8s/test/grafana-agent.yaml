@@ -48,10 +48,12 @@ metadata:
     argocd.argoproj.io/sync-wave: "4"
 data:
   agent.river: |
-    agent:
-      mode: flow
-      mounts:
-        varlog: true
+    agent {
+      mode = "flow"
+      mounts {
+        varlog = true
+      }
+    }
 
     logging {
       level  = "info"
@@ -151,7 +153,7 @@ spec:
         runAsUser: 0  # Needs root to read /var/log/pods/*.log
       containers:
         - name: grafana-agent
-          image: grafana/agent:v0.45.0
+          image: grafana/agent:v0.43.2
           args:
             - --config.file=/etc/agent/agent.river
             - --config.file.type=dynamic
@@ -177,9 +179,11 @@ spec:
           livenessProbe:
             httpGet:
               path: /-/ready
-              port: 12345
+              port: 8080   # changed to a standard port (see note below)
             initialDelaySeconds: 10
             periodSeconds: 30
+          ports:
+            - containerPort: 8080
       volumes:
         - name: config
           configMap:
