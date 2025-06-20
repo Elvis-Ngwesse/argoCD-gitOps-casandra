@@ -288,7 +288,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "4"
   labels:
-    k8s-app: promtail
+    app: promtail
 spec:
   selector:
     matchLabels:
