@@ -7,10 +7,10 @@ kind: ConfigMap
 metadata:
   name: promtail-config
   namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "4"
   labels:
     app: promtail
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
 data:
   config.yaml: |
     server:
@@ -25,31 +25,13 @@ data:
       - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
 
     scrape_configs:
-      - job_name: kubernetes-pods
-        pipeline_stages:
-          - cri: {}
-
-        kubernetes_sd_configs:
-          - role: pod
-
-        relabel_configs:
-          - action: replace
-            source_labels: [__meta_kubernetes_namespace]
-            target_label: namespace
-
-          - action: replace
-            source_labels: [__meta_kubernetes_pod_name]
-            target_label: pod
-
-          - action: replace
-            source_labels: [__meta_kubernetes_pod_container_name]
-            target_label: container
-
-          - action: replace
-            source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
-            separator: "/"
-            target_label: __path__
-            replacement: /var/log/pods/$1/$2/*.log
+      - job_name: varlogs
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: varlogs
+              __path__: /var/log/pods/*/*/*.log
 
 ---
 # ---------------------------------------------------
