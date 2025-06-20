@@ -7,59 +7,50 @@ kind: ConfigMap
 metadata:
   name: promtail-config
   namespace: logging
-  labels:
-    app: promtail
   annotations:
     argocd.argoproj.io/sync-wave: "4"
+  labels:
+    app: promtail
 data:
   config.yaml: |
     server:
       http_listen_port: 9080
-      log_level: debug
       grpc_listen_port: 0
 
     positions:
-      filename: /run/promtail/positions.yaml
+      filename: /var/log/positions.yaml
 
     clients:
-      - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
-        backoff_config:
-          max_period: 5s
-        batchsize: 102400
-        batchwait: 1s
+      - url: http://loki:3100/loki/api/v1/push
 
     scrape_configs:
       - job_name: kubernetes-pods
+        pipeline_stages:
+          - docker: {}  # Optional: parse Docker log format (for containerd environments)
         kubernetes_sd_configs:
           - role: pod
-
         relabel_configs:
-          # Only keep test and logging namespaces
-          - source_labels: [__meta_kubernetes_namespace]
-            regex: test|logging
-            action: keep
+          # Only keep containers with a log file
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: __path__
+            regex: .+
+            replacement: /var/log/pods/*/*/*.log
+            action: replace
 
-          # Extract namespace
+          # Filter out containers without a log path
+          - source_labels: [__path__]
+            regex: ""
+            action: drop
+
+          # Attach useful metadata as labels
           - source_labels: [__meta_kubernetes_namespace]
             target_label: namespace
-
-          # Extract pod name
           - source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
-
-          # Extract container name
           - source_labels: [__meta_kubernetes_pod_container_name]
             target_label: container
-
-          # Use the app label as the job
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            target_label: job
-
-          # Set correct log path
-          - action: replace
-            source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
-            target_label: __path__
-            replacement: /var/log/pods/${1}/${2}/*.log
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node
 
 ---
 # ---------------------------------------------------
@@ -83,13 +74,10 @@ spec:
       labels:
         app: promtail
     spec:
-      serviceAccountName: promtail-sa  # Required if using RBAC
-      securityContext:
-        runAsUser: 0
-        runAsGroup: 0
+      serviceAccountName: promtail-sa
       containers:
         - name: promtail
-          image: grafana/promtail:2.8.2
+          image: grafana/promtail:2.9.4
           args:
             - -config.file=/etc/promtail/config.yaml
           volumeMounts:
@@ -97,15 +85,9 @@ spec:
               mountPath: /etc/promtail
             - name: varlog
               mountPath: /var/log
-              readOnly: true
             - name: containers
               mountPath: /var/lib/docker/containers
               readOnly: true
-            - name: pods
-              mountPath: /var/log/pods
-              readOnly: true
-            - name: positions
-              mountPath: /run/promtail
       volumes:
         - name: config
           configMap:
@@ -113,14 +95,7 @@ spec:
         - name: varlog
           hostPath:
             path: /var/log
-            type: Directory
         - name: containers
           hostPath:
             path: /var/lib/docker/containers
-            type: Directory
-        - name: pods
-          hostPath:
-            path: /var/log/pods
-            type: Directory
-        - name: positions
-          emptyDir: {}
+
