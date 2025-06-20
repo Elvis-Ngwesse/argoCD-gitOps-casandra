@@ -8,7 +8,7 @@ import os
 import sys
 import logging
 from datetime import datetime
-from prometheus_flask_exporter import PrometheusMetrics  # ✅ Prometheus metrics
+from prometheus_client import start_http_server, Summary
 
 # ---------------------------------------
 # ✅ Logging Setup (for Promtail to capture)
@@ -24,8 +24,7 @@ app = Flask(__name__)
 app.logger.addHandler(logging.StreamHandler(sys.stdout))
 app.logger.setLevel(logging.INFO)
 
-# ✅ Prometheus metrics
-metrics = PrometheusMetrics(app)
+start_http_server(8001)  # exposes /metrics on port 8001
 
 # ---------------------------------------
 # 🧱 Setup MongoDB

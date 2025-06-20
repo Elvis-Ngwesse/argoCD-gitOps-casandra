@@ -17,12 +17,6 @@ spec:
     metadata:
       labels:
         app: argocd-app
-      annotations:
-        promtail.io/scrape: "true"
-        promtail.io/path: "/var/log/containers/*.log"
-        prometheus.io/scrape: "true"
-        prometheus.io/path: "/metrics"
-        prometheus.io/port: "5000"
     spec:
       containers:
         - name: argocd-app
@@ -30,6 +24,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
+            - containerPort: 8001
           env:
             - name: MONGO_URI
               value: "mongodb://mongo-service:27017"
@@ -90,12 +85,6 @@ spec:
     metadata:
       labels:
         app: flask-minio
-      annotations:
-        promtail.io/scrape: "true"
-        promtail.io/path: "/var/log/containers/*.log"
-        prometheus.io/scrape: "true"
-        prometheus.io/path: "/metrics"
-        prometheus.io/port: "5002"
     spec:
       containers:
         - name: flask-minio
@@ -103,6 +92,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 5002
+            - containerPort: 8002
           env:
             - name: MINIO_ENDPOINT
               value: "http://minio-service:9000"

@@ -4,7 +4,7 @@ import os
 from urllib.parse import urlparse, urlunparse
 import logging
 import sys
-from prometheus_flask_exporter import PrometheusMetrics  # ✅ Metrics
+from prometheus_client import start_http_server, Summary
 
 # ---------------------------------------
 # ✅ Logging Setup
@@ -23,14 +23,13 @@ app = Flask(__name__)
 app.logger.addHandler(logging.StreamHandler(sys.stdout))
 app.logger.setLevel(logging.INFO)
 
-# ✅ Prometheus Metrics
-metrics = PrometheusMetrics(app)
+start_http_server(8002)  # exposes /metrics on port 8002
 
 # ---------------------------------------
 # 🔐 Load MinIO Environment Variables
 # ---------------------------------------
 try:
-    endpoint = os.environ['MINIO_ENDPOINT']        # e.g. http://minio-service:9000
+    endpoint = os.environ['MINIO_ENDPOINT']  # e.g. http://minio-service:9000
     access_key = os.environ['AWS_ACCESS_KEY_ID']
     secret_key = os.environ['AWS_SECRET_ACCESS_KEY']
     bucket = os.environ['MINIO_BUCKET']
@@ -39,9 +38,11 @@ except KeyError as e:
     logger.error("❌ Missing environment variable: %s", e)
     raise
 
+
 @app.route('/healthz')
 def health():
     return jsonify({"status": "ok"}), 200
+
 
 # ---------------------------------------
 # 🪣 Connect to MinIO (S3-Compatible)
@@ -56,6 +57,7 @@ s3 = boto3.client(
 
 # For local development, replace MinIO hostname with this
 LOCAL_HOST = 'localhost:9000'
+
 
 @app.route('/presigned-urls')
 def presigned_urls():
@@ -87,6 +89,7 @@ def presigned_urls():
             logger.warning("⚠️ Failed to generate URL for key %s: %s", key, e)
 
     return jsonify(urls)
+
 
 # ---------------------------------------
 # 🚀 Run the App
