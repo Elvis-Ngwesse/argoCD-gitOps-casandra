@@ -25,21 +25,22 @@ data:
       - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
 
     scrape_configs:
-      - job_name: direct-pods
+      - job_name: podlogs
         static_configs:
           - targets:
               - localhost
             labels:
               job: podlogs
               __path__: /var/log/pods/*/*/*/*.log
-
-      - job_name: extra-logs
+  
+      - job_name: docker-logs
         static_configs:
           - targets:
               - localhost
             labels:
-              job: extra
-              __path__: /var/log/extra/*.log
+              job: docker-logs
+              __path__: /var/lib/docker/containers/*/*.log
+
 
 ---
 # ---------------------------------------------------
@@ -57,11 +58,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: promtail
+      app: promtail   # Must match template.metadata.labels.app
   template:
     metadata:
       labels:
-        app: promtail   # <-- MUST MATCH selector.matchLabels
+        app: promtail
     spec:
       securityContext:
         runAsUser: 0
