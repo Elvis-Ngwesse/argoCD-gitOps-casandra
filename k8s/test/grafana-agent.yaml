@@ -12,8 +12,7 @@ metadata:
 data:
   agent.yaml: |
     server:
-      log_level: info
-      log_format: logfmt
+      {}
 
     metrics:
       wal_directory: /tmp/wal
