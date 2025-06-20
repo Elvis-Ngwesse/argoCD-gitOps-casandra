@@ -25,13 +25,14 @@ data:
       - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
 
     scrape_configs:
-      - job_name: varlogs
+      - job_name: direct-pods
         static_configs:
           - targets:
               - localhost
             labels:
-              job: varlogs
+              job: podlogs
               __path__: /var/log/pods/*/*/*.log
+
 
 ---
 # ---------------------------------------------------
