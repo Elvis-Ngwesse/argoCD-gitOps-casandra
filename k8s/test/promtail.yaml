@@ -62,7 +62,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: promtail   # Must match template.metadata.labels.app
+      app: promtail-sa
   template:
     metadata:
       labels:
