@@ -14,8 +14,9 @@ data:
     server:
       log_level: info
       log_format: logfmt
-      http_listen_address: 0.0.0.0
-      http_listen_port: 12345
+      http:
+        listen_address: 0.0.0.0
+        listen_port: 12345
 
     metrics:
       wal_directory: /tmp/wal
