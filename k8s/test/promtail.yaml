@@ -55,18 +55,11 @@ metadata:
   labels:
     app: promtail
 spec:
-  selector:
-    matchLabels:
-      app: promtail
   template:
-    metadata:
-      labels:
-        app: promtail
     spec:
       securityContext:
         runAsUser: 0
         runAsGroup: 0
-      serviceAccountName: promtail-sa
       containers:
         - name: promtail
           image: grafana/promtail:2.8.2
