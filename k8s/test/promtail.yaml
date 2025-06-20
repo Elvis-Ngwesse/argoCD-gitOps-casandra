@@ -55,7 +55,13 @@ metadata:
   labels:
     app: promtail
 spec:
+  selector:
+    matchLabels:
+      app: promtail
   template:
+    metadata:
+      labels:
+        app: promtail   # <-- MUST MATCH selector.matchLabels
     spec:
       securityContext:
         runAsUser: 0
