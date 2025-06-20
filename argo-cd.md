@@ -269,7 +269,7 @@ Download test results from the MinIO web interface.
 
 
 minikube service prometheus -n logging --url
-
+minikube service loki -n logging --url
 minikube service flask-service -n test --url
 
 ## 🌐 Ingress with TLS
@@ -289,3 +289,10 @@ minikube service flask-service -n test --url
 | 3    | Grafana Agent      | Loki, Prometheus (optional) | Scrape app logs/metrics → send to Loki/Prometheus |
 | 4    | Prometheus         | Grafana Agent               | Scrape metrics from Grafana Agent                 |
 | 5    | Grafana (optional) | All                         | Visualize logs and metrics                        |
+
+
+
+
+curl -G "http://127.0.0.1:57537/loki/api/v1/query" \
+--data-urlencode 'query={job="podlogs"}' \
+--data-urlencode 'limit=5'
