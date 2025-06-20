@@ -63,6 +63,9 @@ spec:
       labels:
         app: promtail
     spec:
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
       serviceAccountName: promtail-sa
       containers:
         - name: promtail
