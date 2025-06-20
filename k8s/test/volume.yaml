@@ -131,3 +131,20 @@ spec:
     path: /mnt/data/mongo-0
     type: DirectoryOrCreate
 
+---
+# ---------------------------------------------------
+# 6. PersistentVolume (loki-storage-pvc)
+# ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-storage-pvc
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
