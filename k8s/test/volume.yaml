@@ -165,45 +165,6 @@ spec:
 
 ---
 # ---------------------------------------------------
-# 5. PersistentVolume + PVC (prometheus-pv)
-# ---------------------------------------------------
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: prometheus-pv
-  annotations:
-    argocd.argoproj.io/sync-wave: "3"
-  labels:
-    type: local
-spec:
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: ""
-  hostPath:
-    path: /mnt/data/prometheus
-    type: DirectoryOrCreate
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: prometheus-pvc
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "3"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: ""
-  resources:
-    requests:
-      storage: 5Gi
-  volumeName: prometheus-pv
-
----
-# ---------------------------------------------------
 # 6. PersistentVolume (mongo-pv-0)
 # ---------------------------------------------------
 apiVersion: v1
