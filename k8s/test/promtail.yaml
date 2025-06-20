@@ -298,7 +298,7 @@ spec:
       labels:
         name: promtail
     spec:
-      serviceAccountName: promtail
+      serviceAccountName: promtail-sa
       containers:
         - name: promtail
           image: grafana/promtail:2.1.0
