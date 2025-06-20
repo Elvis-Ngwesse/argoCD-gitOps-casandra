@@ -1,6 +1,6 @@
 ---
 # ---------------------------------------------------
-# ConfigMap promtail
+# ConfigMap: Promtail dynamic config
 # ---------------------------------------------------
 apiVersion: v1
 kind: ConfigMap
@@ -25,30 +25,45 @@ data:
       - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
         backoff_config:
           max_period: 5s
-        batchsize: 102400  # 100 KB per batch (default is 1048576 = 1 MB)
+        batchsize: 102400
         batchwait: 1s
 
     scrape_configs:
-      - job_name: podlogs
-        static_configs:
-          - targets:
-              - localhost
-            labels:
-              job: podlogs
-              __path__: /var/log/pods/*/*/*/*.log
-  
-      - job_name: docker-logs
-        static_configs:
-          - targets:
-              - localhost
-            labels:
-              job: docker-logs
-              __path__: /var/lib/docker/containers/*/*-json.log
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
 
+        relabel_configs:
+          # Only keep test and logging namespaces
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: test|logging
+            action: keep
+
+          # Extract namespace
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+          # Extract pod name
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+
+          # Extract container name
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+
+          # Use the app label as the job
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: job
+
+          # Set correct log path
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+            target_label: __path__
+            replacement: /var/log/pods/*/*/*.log
 
 ---
 # ---------------------------------------------------
-# DaemonSet promtail
+# DaemonSet: Promtail dynamic
 # ---------------------------------------------------
 apiVersion: apps/v1
 kind: DaemonSet
@@ -62,12 +77,13 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: promtail   # Must match template.metadata.labels.app
+      app: promtail
   template:
     metadata:
       labels:
         app: promtail
     spec:
+      serviceAccountName: promtail  # Required if using RBAC
       securityContext:
         runAsUser: 0
         runAsGroup: 0
@@ -82,8 +98,11 @@ spec:
             - name: varlog
               mountPath: /var/log
               readOnly: true
-            - name: dockersock
+            - name: containers
               mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: pods
+              mountPath: /var/log/pods
               readOnly: true
             - name: positions
               mountPath: /run/promtail
@@ -95,9 +114,13 @@ spec:
           hostPath:
             path: /var/log
             type: Directory
-        - name: dockersock
+        - name: containers
           hostPath:
             path: /var/lib/docker/containers
+            type: Directory
+        - name: pods
+          hostPath:
+            path: /var/log/pods
             type: Directory
         - name: positions
           emptyDir: {}
