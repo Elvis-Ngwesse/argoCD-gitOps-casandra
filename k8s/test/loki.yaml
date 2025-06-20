@@ -8,62 +8,56 @@ metadata:
   name: loki-config
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "3"
 data:
-  loki-config.yaml: |
-    auth_enabled: false  # Disable auth; useful in dev/testing
+  loki.yaml: |
+    auth_enabled: false
 
     server:
-      http_listen_port: 3100  # Loki's main HTTP port
-
-    distributor:
-      ring:
-        kvstore:
-          store: memberlist  # Uses gossip protocol for clustering
+      http_listen_port: 3100
 
     ingester:
       lifecycler:
+        address: 127.0.0.1
         ring:
           kvstore:
-            store: memberlist
-          replication_factor: 1  # 1 replica (dev setup)
-      chunk_idle_period: 5m     # Flush chunks idle for 5 minutes
-      chunk_retain_period: 30m  # Retain chunks in memory for 30 minutes
-
-    memberlist:
-      bind_port: 7946  # Gossip protocol port
-      abort_if_cluster_join_fails: false
-      max_join_backoff: 1m
-      max_join_retries: 10
-      min_join_backoff: 1s
+            store: inmemory
+          replication_factor: 1
+        final_sleep: 0s
+      chunk_idle_period: 5m
+      chunk_retain_period: 30s
+      max_transfer_retries: 0
 
     schema_config:
       configs:
-      - from: 2020-05-15
-        store: boltdb-shipper
-        object_store: filesystem
-        schema: v11
-        index:
-          prefix: index_
-          period: 24h
+        - from: 2020-10-24
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
 
     storage_config:
       boltdb_shipper:
-        active_index_directory: /loki/index
-        cache_location: /loki/index_cache
+        active_index_directory: /data/loki/index
+        cache_location: /data/loki/cache
         shared_store: filesystem
-
       filesystem:
-        directory: /loki/chunks  # Local storage for logs
+        directory: /data/loki/chunks
 
     limits_config:
+      enforce_metric_name: false
       reject_old_samples: true
-      reject_old_samples_max_age: 168h  # Reject samples older than 7 days
+      reject_old_samples_max_age: 168h
 
-    compactor:
-      working_directory: /data/compactor
-      shared_store: filesystem
-      compaction_interval: 5m  # Compact small index files every 5 minutes
+    chunk_store_config:
+      max_look_back_period: 0s
+
+    table_manager:
+      retention_deletes_enabled: false
+      retention_period: 0s
+
 ---
 # ---------------------------------------------------
 # Loki Deployment + Service
@@ -74,7 +68,9 @@ metadata:
   name: loki
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "6"
+    argocd.argoproj.io/sync-wave: "3"
+  labels:
+    app: loki
 spec:
   replicas: 1
   selector:
@@ -87,48 +83,38 @@ spec:
     spec:
       containers:
         - name: loki
-          image: grafana/loki:2.7.3
-          securityContext:
-            runAsUser: 0  # Loki sometimes needs root to access volumes
+          image: grafana/loki:2.8.2
           args:
-            - -config.file=/etc/loki/loki-config.yaml
+            - -config.file=/etc/loki/loki.yaml
           ports:
             - containerPort: 3100
               name: http
           volumeMounts:
-            - name: loki-config
-              mountPath: /etc/loki/loki-config.yaml
-              subPath: loki-config.yaml
-              readOnly: true
+            - name: config
+              mountPath: /etc/loki
             - name: loki-storage
-              mountPath: /loki  # For chunk + index storage
-            - name: loki-compactor
-              mountPath: /data  # For compactor to store data
+              mountPath: /data/loki
       volumes:
-        - name: loki-config
+        - name: config
           configMap:
             name: loki-config
-            items:
-              - key: loki-config.yaml
-                path: loki-config.yaml
         - name: loki-storage
-          persistentVolumeClaim:
-            claimName: loki-storage-pvc
-        - name: loki-compactor
-          persistentVolumeClaim:
-            claimName: loki-compactor-pvc
+          emptyDir: {}
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: loki
   namespace: logging
+  labels:
+    app: loki
 spec:
-  type: NodePort
   selector:
     app: loki
   ports:
-    - name: http
-      port: 3100
+    - port: 3100
       targetPort: 3100
-      nodePort: 31031  # You can now reach Loki at <NodeIP>:31031
+      protocol: TCP
+      name: http
+

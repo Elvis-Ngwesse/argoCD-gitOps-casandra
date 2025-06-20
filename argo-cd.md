@@ -273,3 +273,13 @@ minikube service flask-service -n test --url
 ---
 > End of Deployment Guide ✨
 
+
+📦 Deployment Plan (Incremental Testing)
+--------------
+| Step | Component          | Dependency                  | Purpose                                           |
+|------|--------------------|-----------------------------|---------------------------------------------------|
+| 1    | Loki               | None                        | Central log storage and query engine              |
+| 2    | Promtail           | Loki                        | Collect logs from nodes → send to Loki            |
+| 3    | Grafana Agent      | Loki, Prometheus (optional) | Scrape app logs/metrics → send to Loki/Prometheus |
+| 4    | Prometheus         | Grafana Agent               | Scrape metrics from Grafana Agent                 |
+| 5    | Grafana (optional) | All                         | Visualize logs and metrics                        |

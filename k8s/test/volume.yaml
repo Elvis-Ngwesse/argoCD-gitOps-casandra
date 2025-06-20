@@ -70,59 +70,6 @@ spec:
       storage: 5Gi
   storageClassName: ""
   volumeName: grafana-pv
-
----
-# ---------------------------------------------------
-# 3. PersistentVolume + PVC (loki-storage-pvc)
-# ---------------------------------------------------
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: loki-storage-pvc
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "3"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-  storageClassName: ""
-  volumeName: loki-compactor-pv
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: loki-compactor-pv
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
-  labels:
-    type: local
-spec:
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: ""
-  hostPath:
-    path: /mnt/data/loki/compactor
-    type: DirectoryOrCreate
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: loki-compactor-pvc
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "6"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
 ---
 # ---------------------------------------------------
 # 4. PersistentVolume + PVC (promtail-positions-pv)
