@@ -1,6 +1,6 @@
 ---
 # ---------------------------------------------------
-# Grafana Agent ConfigMap
+# Grafana Agent ConfigMap for dynamic Kubernetes pod logs
 # ---------------------------------------------------
 apiVersion: v1
 kind: ConfigMap
@@ -38,25 +38,36 @@ data:
           clients:
             - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
           scrape_configs:
-            - job_name: promtail-logs-test
-              static_configs:
-                - targets: [localhost]
-                  labels:
-                    job: docker-logs
-                    namespace: test
-                    __path__: /var/lib/docker/containers/*/*-json.log
+            - job_name: kubernetes-pods
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                # Keep only test and logging namespaces
+                - source_labels: [__meta_kubernetes_namespace]
+                  regex: test|logging
+                  action: keep
 
-            - job_name: promtail-logs-logging
-              static_configs:
-                - targets: [localhost]
-                  labels:
-                    job: docker-logs
-                    namespace: logging
-                    __path__: /var/lib/docker/containers/*/*-json.log
+                # Extract namespace label
+                - source_labels: [__meta_kubernetes_namespace]
+                  target_label: namespace
+
+                # Extract pod label
+                - source_labels: [__meta_kubernetes_pod_name]
+                  target_label: pod
+
+                # Extract container label
+                - source_labels: [__meta_kubernetes_pod_container_name]
+                  target_label: container
+
+                # Set the path to the pod logs on the host
+                - action: replace
+                  source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+                  target_label: __path__
+                  replacement: /var/log/pods/*/*/*.log
 
 ---
 # ---------------------------------------------------
-# Grafana Agent DaemonSet
+# Grafana Agent DaemonSet for Kubernetes pod logs
 # ---------------------------------------------------
 apiVersion: apps/v1
 kind: DaemonSet
@@ -65,6 +76,8 @@ metadata:
   namespace: logging
   annotations:
     argocd.argoproj.io/sync-wave: "5"
+  labels:
+    app: grafana-agent
 spec:
   selector:
     matchLabels:
@@ -86,11 +99,8 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/agent
-            - name: varlog
-              mountPath: /var/log
-              readOnly: true
-            - name: dockersock
-              mountPath: /var/lib/docker/containers
+            - name: varlogpods
+              mountPath: /var/log/pods
               readOnly: true
             - name: positions
               mountPath: /run/promtail
@@ -98,17 +108,17 @@ spec:
         - name: config
           configMap:
             name: grafana-agent-config
-        - name: varlog
+        - name: varlogpods
           hostPath:
-            path: /var/log
-            type: Directory
-        - name: dockersock
-          hostPath:
-            path: /var/lib/docker/containers
+            path: /var/log/pods
             type: Directory
         - name: positions
-          emptyDir: { }
+          emptyDir: {}
+
 ---
+# ---------------------------------------------------
+# Service for Grafana Agent HTTP endpoint
+# ---------------------------------------------------
 apiVersion: v1
 kind: Service
 metadata:
