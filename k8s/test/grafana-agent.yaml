@@ -12,7 +12,8 @@ metadata:
 data:
   agent.yaml: |
     server:
-      {}
+      http_listen_address: 0.0.0.0
+      http_listen_port: 12345
 
     metrics:
       wal_directory: /tmp/wal
@@ -95,7 +96,6 @@ spec:
           image: grafana/agent:v0.43.2
           args:
             - --config.file=/etc/agent/agent.yaml
-            - --server.http.listen-port=12345
           volumeMounts:
             - name: config
               mountPath: /etc/agent
