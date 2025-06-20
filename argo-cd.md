@@ -293,6 +293,6 @@ minikube service flask-service -n test --url
 
 
 
-curl -G "http://127.0.0.1:57537/loki/api/v1/query" \
---data-urlencode 'query={job="podlogs"}' \
+curl -G "http://127.0.0.1:56763/loki/api/v1/query" \
+--data-urlencode 'query={job="docker-logs"}' \
 --data-urlencode 'limit=5'
