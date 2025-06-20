@@ -62,12 +62,13 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: promtail-sa
+      app: promtail
   template:
     metadata:
       labels:
         app: promtail
     spec:
+      serviceAccountName: promtail-sa
       securityContext:
         runAsUser: 0
         runAsGroup: 0
