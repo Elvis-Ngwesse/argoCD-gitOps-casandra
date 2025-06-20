@@ -27,25 +27,21 @@ data:
           clients:
             - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
           scrape_configs:
-            - job_name: kubernetes-pods
-              kubernetes_sd_configs:
-                - role: pod
-              relabel_configs:
-                - source_labels: [__meta_kubernetes_namespace]
-                  target_label: namespace
-                - source_labels: [__meta_kubernetes_pod_container_name]
-                  target_label: container
-                - source_labels: [__meta_kubernetes_pod_name]
-                  target_label: pod
-                - source_labels: [__meta_kubernetes_pod_node_name]
-                  action: keep
-                  regex: ${HOSTNAME}
-                - source_labels: [__meta_kubernetes_namespace]
-                  action: drop
-                  regex: grafana-agent
-                - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
-                  target_label: __path__
-                  replacement: /var/log/pods/*$1/*.log
+            - job_name: promtail-logs-test
+              static_configs:
+                - targets: [localhost]
+                  labels:
+                    job: docker-logs
+                    namespace: test
+                    __path__: /var/lib/docker/containers/*/*-json.log
+          
+            - job_name: promtail-logs-logging
+              static_configs:
+                - targets: [localhost]
+                  labels:
+                    job: docker-logs
+                    namespace: logging
+                    __path__: /var/lib/docker/containers/*/*-json.log
 
 ---
 # ---------------------------------------------------
@@ -77,39 +73,26 @@ spec:
             - --config.file=/etc/agent/agent.yaml
           volumeMounts:
             - name: config
-              mountPath: /etc/agent
+              mountPath: /etc/promtail
             - name: varlog
               mountPath: /var/log
               readOnly: true
-            - name: dockercontainers
+            - name: dockersock
               mountPath: /var/lib/docker/containers
               readOnly: true
             - name: positions
-              mountPath: /tmp
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "200Mi"
-            limits:
-              cpu: "500m"
-              memory: "500Mi"
-          livenessProbe:
-            httpGet:
-              path: /-/ready
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 30
-          ports:
-            - containerPort: 8080
+              mountPath: /run/promtail
       volumes:
         - name: config
           configMap:
-            name: grafana-agent-config
+            name: promtail-config
         - name: varlog
           hostPath:
             path: /var/log
-        - name: dockercontainers
+            type: Directory
+        - name: dockersock
           hostPath:
             path: /var/lib/docker/containers
+            type: Directory
         - name: positions
-          emptyDir: {}
+          emptyDir: { }

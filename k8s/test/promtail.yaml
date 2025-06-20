@@ -29,7 +29,7 @@ data:
         batchwait: 15s          # Increased wait time to accumulate more logs per batch
 
     scrape_configs:
-      - job_name: docker-logs-test
+      - job_name: promtail-logs-test
         static_configs:
           - targets: [localhost]
             labels:
@@ -37,7 +37,7 @@ data:
               namespace: test
               __path__: /var/lib/docker/containers/*/*-json.log
   
-      - job_name: docker-logs-logging
+      - job_name: promtail-logs-logging
         static_configs:
           - targets: [localhost]
             labels:
