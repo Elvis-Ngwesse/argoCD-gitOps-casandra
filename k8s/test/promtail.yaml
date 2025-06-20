@@ -16,7 +16,7 @@ data:
     server:
       http_listen_port: 9080
       grpc_listen_port: 0
-      log_level: info
+      log_level: debug
 
     positions:
       filename: /run/promtail/positions.yaml
@@ -25,6 +25,14 @@ data:
       - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
 
     scrape_configs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: keep
+            regex: .+
+    
       - job_name: kubernetes-pods
         pipeline_stages:
           - docker: {}
