@@ -1,11 +1,14 @@
 ---
+# ---------------------------------------------------
+# Grafana Agent ConfigMap
+# ---------------------------------------------------
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-agent-config
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "5"
 data:
   agent.yaml: |
     server:
@@ -55,13 +58,16 @@ data:
                     __path__: /var/lib/docker/containers/*/*-json.log
 
 ---
+# ---------------------------------------------------
+# Grafana Agent DaemonSet
+# ---------------------------------------------------
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: grafana-agent
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   selector:
     matchLabels:
@@ -79,23 +85,9 @@ spec:
           image: grafana/agent:v0.43.2
           args:
             - --config.file=/etc/agent/agent.yaml
-            - --enable-features=agent-mode-static
-
-            # Etcd config store flags
-            - --metrics.service.config-store.etcd.endpoints=https://etcd1.logging.svc.cluster.local:2379,https://etcd2.logging.svc.cluster.local:2379
-            - --metrics.service.config-store.etcd.username=myuser
-            - --metrics.service.config-store.etcd.password=mypassword
-            - --metrics.service.config-store.etcd.tls-enabled=true
-            - --metrics.service.config-store.etcd.tls-ca-path=/etc/agent/certs/ca.crt
-            - --metrics.service.config-store.etcd.tls-cert-path=/etc/agent/certs/client.crt
-            - --metrics.service.config-store.etcd.tls-key-path=/etc/agent/certs/client.key
-            - --metrics.service.config-store.etcd.tls-insecure-skip-verify=false
-            - --metrics.service.config-store.etcd.tls-min-version=VersionTLS12
-            - --metrics.service.config-store.etcd.tls-server-name=etcd.logging.svc.cluster.local
-
           volumeMounts:
             - name: config
-              mountPath: /etc/agent
+              mountPath: /etc/promtail
             - name: varlog
               mountPath: /var/log
               readOnly: true
@@ -103,17 +95,11 @@ spec:
               mountPath: /var/lib/docker/containers
               readOnly: true
             - name: positions
-              mountPath: /tmp
-            - name: wal
-              mountPath: /tmp/wal
-            - name: certs
-              mountPath: /etc/agent/certs
-              readOnly: true
-
+              mountPath: /run/promtail
       volumes:
         - name: config
           configMap:
-            name: grafana-agent-config
+            name: promtail-config
         - name: varlog
           hostPath:
             path: /var/log
@@ -123,10 +109,22 @@ spec:
             path: /var/lib/docker/containers
             type: Directory
         - name: positions
-          emptyDir: {}
-        - name: wal
-          emptyDir: {}
-        - name: certs
-          secret:
-            secretName: grafana-agent-etcd-certs
-            optional: false
+          emptyDir: { }
+---
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-agent
+  namespace: logging
+  labels:
+    app: grafana-agent
+spec:
+  selector:
+    app: grafana-agent
+  ports:
+    - protocol: TCP
+      port: 12345
+      targetPort: 12345
+      name: http-metrics
+  type: ClusterIP
