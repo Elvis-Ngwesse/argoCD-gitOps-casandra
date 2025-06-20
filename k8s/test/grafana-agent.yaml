@@ -1,7 +1,4 @@
 ---
-# ---------------------------------------------------
-# Grafana Agent ConfigMap
-# ---------------------------------------------------
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -58,9 +55,6 @@ data:
                     __path__: /var/lib/docker/containers/*/*-json.log
 
 ---
-# ---------------------------------------------------
-# Grafana Agent DaemonSet
-# ---------------------------------------------------
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -85,9 +79,10 @@ spec:
           image: grafana/agent:v0.43.2
           args:
             - --config.file=/etc/agent/agent.yaml
+            - --enable-features=agent-mode-static
           volumeMounts:
             - name: config
-              mountPath: /etc/promtail
+              mountPath: /etc/agent
             - name: varlog
               mountPath: /var/log
               readOnly: true
@@ -95,11 +90,13 @@ spec:
               mountPath: /var/lib/docker/containers
               readOnly: true
             - name: positions
-              mountPath: /run/promtail
+              mountPath: /tmp
+            - name: wal
+              mountPath: /tmp/wal
       volumes:
         - name: config
           configMap:
-            name: promtail-config
+            name: grafana-agent-config
         - name: varlog
           hostPath:
             path: /var/log
@@ -109,4 +106,6 @@ spec:
             path: /var/lib/docker/containers
             type: Directory
         - name: positions
-          emptyDir: { }
+          emptyDir: {}
+        - name: wal
+          emptyDir: {}
