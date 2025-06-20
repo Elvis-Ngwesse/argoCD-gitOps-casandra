@@ -87,7 +87,7 @@ spec:
             - --config.file=/etc/agent/agent.yaml
           volumeMounts:
             - name: config
-              mountPath: /etc/promtail
+              mountPath: /etc/agent
             - name: varlog
               mountPath: /var/log
               readOnly: true
@@ -99,7 +99,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: promtail-config
+            name: grafana-agent-config
         - name: varlog
           hostPath:
             path: /var/log
