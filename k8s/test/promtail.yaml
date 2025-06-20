@@ -26,16 +26,7 @@ data:
         backoff_config:
           max_period: 5s
         batchsize: 102400  # 100 KB per batch (default is 1048576 = 1 MB)
-        batchwait: 1s
-
-    scrape_configs:
-      - job_name: podlogs
-        static_configs:
-          - targets:
-              - localhost
-            labels:
-              job: podlogs
-              __path__: /var/log/pods/*/*/*/*.log
+        batchwait: 10s
     
       - job_name: docker-logs
         static_configs:
