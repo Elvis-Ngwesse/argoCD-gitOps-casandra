@@ -84,7 +84,6 @@ spec:
         - name: grafana-agent
           image: grafana/agent:v0.43.2
           args:
-            - run
             - --config.file=/etc/agent/agent.yaml
           volumeMounts:
             - name: config
