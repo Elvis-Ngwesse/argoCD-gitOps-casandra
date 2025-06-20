@@ -80,6 +80,19 @@ spec:
           args:
             - --config.file=/etc/agent/agent.yaml
             - --enable-features=agent-mode-static
+
+            # Etcd config store flags
+            - --metrics.service.config-store.etcd.endpoints=https://etcd1.logging.svc.cluster.local:2379,https://etcd2.logging.svc.cluster.local:2379
+            - --metrics.service.config-store.etcd.username=myuser
+            - --metrics.service.config-store.etcd.password=mypassword
+            - --metrics.service.config-store.etcd.tls-enabled=true
+            - --metrics.service.config-store.etcd.tls-ca-path=/etc/agent/certs/ca.crt
+            - --metrics.service.config-store.etcd.tls-cert-path=/etc/agent/certs/client.crt
+            - --metrics.service.config-store.etcd.tls-key-path=/etc/agent/certs/client.key
+            - --metrics.service.config-store.etcd.tls-insecure-skip-verify=false
+            - --metrics.service.config-store.etcd.tls-min-version=VersionTLS12
+            - --metrics.service.config-store.etcd.tls-server-name=etcd.logging.svc.cluster.local
+
           volumeMounts:
             - name: config
               mountPath: /etc/agent
@@ -93,6 +106,10 @@ spec:
               mountPath: /tmp
             - name: wal
               mountPath: /tmp/wal
+            - name: certs
+              mountPath: /etc/agent/certs
+              readOnly: true
+
       volumes:
         - name: config
           configMap:
@@ -109,3 +126,7 @@ spec:
           emptyDir: {}
         - name: wal
           emptyDir: {}
+        - name: certs
+          secret:
+            secretName: grafana-agent-etcd-certs
+            optional: false
