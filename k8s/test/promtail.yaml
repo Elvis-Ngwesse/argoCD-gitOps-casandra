@@ -83,7 +83,7 @@ spec:
       labels:
         app: promtail
     spec:
-      serviceAccountName: promtail  # Required if using RBAC
+      serviceAccountName: promtail-sa  # Required if using RBAC
       securityContext:
         runAsUser: 0
         runAsGroup: 0
