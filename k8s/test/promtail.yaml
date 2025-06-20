@@ -1,284 +1,54 @@
 ---
 # ---------------------------------------------------
-# ConfigMap: Promtail dynamic config
+# ConfigMap promtail
 # ---------------------------------------------------
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: promtail-config
   namespace: logging
+  labels:
+    app: promtail
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 data:
-  promtail.yaml: |
-    client:
-      backoff_config:
-        max_period: 5m
-        max_retries: 10
-        min_period: 500ms
-      batchsize: 1048576
-      batchwait: 1s
-      external_labels: {}
-      timeout: 10s
-      url: http://loki:3100/loki/api/v1/push
+  config.yaml: |
+    server:
+      http_listen_port: 9080
+      log_level: debug
+      grpc_listen_port: 0
+
     positions:
       filename: /run/promtail/positions.yaml
-    server:
-      log_level: debug
-      http_listen_port: 3101
-    target_config:
-      sync_period: 10s
+
+    clients:
+      - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
+        backoff_config:
+          max_period: 5s
+        batchsize: 102400  # 100 KB per batch (default is 1048576 = 1 MB)
+        batchwait: 1s
+
     scrape_configs:
-    - job_name: kubernetes-pods-name
-      pipeline_stages:
-        - docker: {}
-      kubernetes_sd_configs:
-      - role: pod
-      relabel_configs:
-      - source_labels:
-        - __meta_kubernetes_pod_label_name
-        target_label: __service__
-      - source_labels:
-        - __meta_kubernetes_pod_node_name
-        target_label: __host__
-      - action: drop
-        regex: ''
-        source_labels:
-        - __service__
-      - action: labelmap
-        regex: __meta_kubernetes_pod_label_(.+)
-      - action: replace
-        replacement: $1
-        separator: /
-        source_labels:
-        - __meta_kubernetes_namespace
-        - __service__
-        target_label: job
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_namespace
-        target_label: namespace
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_name
-        target_label: pod
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_container_name
-        target_label: container
-      - replacement: /var/log/pods/*$1/*.log
-        separator: /
-        source_labels:
-        - __meta_kubernetes_pod_uid
-        - __meta_kubernetes_pod_container_name
-        target_label: __path__
-    - job_name: kubernetes-pods-app
-      pipeline_stages:
-        - docker: {}
-      kubernetes_sd_configs:
-      - role: pod
-      relabel_configs:
-      - action: drop
-        regex: .+
-        source_labels:
-        - __meta_kubernetes_pod_label_name
-      - source_labels:
-        - __meta_kubernetes_pod_label_app
-        target_label: __service__
-      - source_labels:
-        - __meta_kubernetes_pod_node_name
-        target_label: __host__
-      - action: drop
-        regex: ''
-        source_labels:
-        - __service__
-      - action: labelmap
-        regex: __meta_kubernetes_pod_label_(.+)
-      - action: replace
-        replacement: $1
-        separator: /
-        source_labels:
-        - __meta_kubernetes_namespace
-        - __service__
-        target_label: job
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_namespace
-        target_label: namespace
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_name
-        target_label: pod
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_container_name
-        target_label: container
-      - replacement: /var/log/pods/*$1/*.log
-        separator: /
-        source_labels:
-        - __meta_kubernetes_pod_uid
-        - __meta_kubernetes_pod_container_name
-        target_label: __path__
-    - job_name: kubernetes-pods-direct-controllers
-      pipeline_stages:
-        - docker: {}
-      kubernetes_sd_configs:
-      - role: pod
-      relabel_configs:
-      - action: drop
-        regex: .+
-        separator: ''
-        source_labels:
-        - __meta_kubernetes_pod_label_name
-        - __meta_kubernetes_pod_label_app
-      - action: drop
-        regex: '[0-9a-z-.]+-[0-9a-f]{8,10}'
-        source_labels:
-        - __meta_kubernetes_pod_controller_name
-      - source_labels:
-        - __meta_kubernetes_pod_controller_name
-        target_label: __service__
-      - source_labels:
-        - __meta_kubernetes_pod_node_name
-        target_label: __host__
-      - action: drop
-        regex: ''
-        source_labels:
-        - __service__
-      - action: labelmap
-        regex: __meta_kubernetes_pod_label_(.+)
-      - action: replace
-        replacement: $1
-        separator: /
-        source_labels:
-        - __meta_kubernetes_namespace
-        - __service__
-        target_label: job
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_namespace
-        target_label: namespace
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_name
-        target_label: pod
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_container_name
-        target_label: container
-      - replacement: /var/log/pods/*$1/*.log
-        separator: /
-        source_labels:
-        - __meta_kubernetes_pod_uid
-        - __meta_kubernetes_pod_container_name
-        target_label: __path__
-    - job_name: kubernetes-pods-indirect-controller
-      pipeline_stages:
-        - docker: {}
-      kubernetes_sd_configs:
-      - role: pod
-      relabel_configs:
-      - action: drop
-        regex: .+
-        separator: ''
-        source_labels:
-        - __meta_kubernetes_pod_label_name
-        - __meta_kubernetes_pod_label_app
-      - action: keep
-        regex: '[0-9a-z-.]+-[0-9a-f]{8,10}'
-        source_labels:
-        - __meta_kubernetes_pod_controller_name
-      - action: replace
-        regex: '([0-9a-z-.]+)-[0-9a-f]{8,10}'
-        source_labels:
-        - __meta_kubernetes_pod_controller_name
-        target_label: __service__
-      - source_labels:
-        - __meta_kubernetes_pod_node_name
-        target_label: __host__
-      - action: drop
-        regex: ''
-        source_labels:
-        - __service__
-      - action: labelmap
-        regex: __meta_kubernetes_pod_label_(.+)
-      - action: replace
-        replacement: $1
-        separator: /
-        source_labels:
-        - __meta_kubernetes_namespace
-        - __service__
-        target_label: job
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_namespace
-        target_label: namespace
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_name
-        target_label: pod
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_container_name
-        target_label: container
-      - replacement: /var/log/pods/*$1/*.log
-        separator: /
-        source_labels:
-        - __meta_kubernetes_pod_uid
-        - __meta_kubernetes_pod_container_name
-        target_label: __path__
-    - job_name: kubernetes-pods-static
-      pipeline_stages:
-        - docker: {}
-      kubernetes_sd_configs:
-      - role: pod
-      relabel_configs:
-      - action: drop
-        regex: ''
-        source_labels:
-        - __meta_kubernetes_pod_annotation_kubernetes_io_config_mirror
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_label_component
-        target_label: __service__
-      - source_labels:
-        - __meta_kubernetes_pod_node_name
-        target_label: __host__
-      - action: drop
-        regex: ''
-        source_labels:
-        - __service__
-      - action: labelmap
-        regex: __meta_kubernetes_pod_label_(.+)
-      - action: replace
-        replacement: $1
-        separator: /
-        source_labels:
-        - __meta_kubernetes_namespace
-        - __service__
-        target_label: job
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_namespace
-        target_label: namespace
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_name
-        target_label: pod
-      - action: replace
-        source_labels:
-        - __meta_kubernetes_pod_container_name
-        target_label: container
-      - replacement: /var/log/pods/*$1/*.log
-        separator: /
-        source_labels:
-        - __meta_kubernetes_pod_annotation_kubernetes_io_config_mirror
-        - __meta_kubernetes_pod_container_name
-        target_label: __path__
+      - job_name: podlogs
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: podlogs
+              __path__: /var/log/pods/*/*/*/*.log
+    
+      - job_name: docker-logs
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: docker-logs
+              __path__: /var/lib/docker/containers/*/*-json.log
+
 
 ---
 # ---------------------------------------------------
-# DaemonSet: Promtail dynamic
+# DaemonSet promtail
 # ---------------------------------------------------
 apiVersion: apps/v1
 kind: DaemonSet
@@ -292,39 +62,42 @@ metadata:
 spec:
   selector:
     matchLabels:
-      name: promtail
+      app: promtail   # Must match template.metadata.labels.app
   template:
     metadata:
       labels:
-        name: promtail
+        app: promtail
     spec:
-      serviceAccountName: promtail-sa
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
       containers:
         - name: promtail
-          image: grafana/promtail:2.1.0
+          image: grafana/promtail:2.8.2
           args:
-            - -config.file=/etc/promtail/promtail.yaml
+            - -config.file=/etc/promtail/config.yaml
           volumeMounts:
-            - name: promtail-config
+            - name: config
               mountPath: /etc/promtail
-            - name: docker
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+            - name: dockersock
               mountPath: /var/lib/docker/containers
               readOnly: true
-            - name: pods
-              mountPath: /var/log/pods
-              readOnly: true
-            - name: run
+            - name: positions
               mountPath: /run/promtail
       volumes:
-        - name: run
-          hostPath:
-            path: /run/promtail
-        - name: docker
-          hostPath:
-            path: /var/lib/docker/containers
-        - name: pods
-          hostPath:
-            path: /var/log/pods
-        - name: promtail-config
+        - name: config
           configMap:
             name: promtail-config
+        - name: varlog
+          hostPath:
+            path: /var/log
+            type: Directory
+        - name: dockersock
+          hostPath:
+            path: /var/lib/docker/containers
+            type: Directory
+        - name: positions
+          emptyDir: {}
