@@ -43,13 +43,13 @@ data:
         active_index_directory: /data/loki/index
         cache_location: /data/loki/cache
         shared_store: filesystem
-    
+
       filesystem:
         directory: /data/loki/chunks
-    
-      compactor:
-        working_directory: /data/loki/compactor
-        shared_store: filesystem
+
+    compactor:
+      working_directory: /data/loki/compactor
+      shared_store: filesystem
 
     limits_config:
       enforce_metric_name: false
@@ -62,6 +62,7 @@ data:
     table_manager:
       retention_deletes_enabled: false
       retention_period: 0s
+
 
 ---
 # ---------------------------------------------------
