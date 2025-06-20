@@ -41,11 +41,12 @@ data:
             target_label: container
           - source_labels: [__meta_kubernetes_pod_node_name]
             target_label: node_name
-          # This one constructs the full path to the log file, including pod UID:
           - action: replace
             source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_pod_name, __meta_kubernetes_pod_uid, __meta_kubernetes_container_name]
+            separator: "_"
+            regex: (.+)_(.+)_(.+)_(.+)
+            replacement: /var/log/pods/$1_$2_$3/$4/0.log
             target_label: __path__
-            replacement: /var/log/pods/${1}_${2}_${3}/${4}/0.log
 
 ---
 # ---------------------------------------------------
