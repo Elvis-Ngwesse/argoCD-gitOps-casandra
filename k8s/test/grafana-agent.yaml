@@ -31,7 +31,7 @@ data:
               static_configs:
                 - targets: ['flask-minio-service.test.svc.cluster.local:5002']
           remote_write:
-            - url: http://prometheus.monitoring.svc.cluster.local:9090/api/v1/write
+            - url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
 
     logs:
       configs:
