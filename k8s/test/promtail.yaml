@@ -31,7 +31,7 @@ data:
               - localhost
             labels:
               job: podlogs
-              __path__: /var/log/pods/*/*/*.log
+              __path__: /var/log/pods/*/*/*/*.log
 
 
 ---
