@@ -14,8 +14,10 @@ metadata:
 data:
   agent.yaml: |
     server:
-      log_level: info
-      http_listen_port: 12345
+    log_level: info
+    log_format: logfmt
+    http:
+      listen_address: 0.0.0.0:12345
 
     metrics:
       global:
