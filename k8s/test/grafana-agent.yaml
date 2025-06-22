@@ -1,6 +1,3 @@
-
-
----
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -24,7 +21,8 @@ spec:
         - name: grafana-agent
           image: grafana/agent:v0.39.0
           args:
-            - --config.file=/etc/agent/agent.yaml
+            - run
+            - /etc/agent/config.river
           volumeMounts:
             - name: config
               mountPath: /etc/agent
@@ -57,4 +55,3 @@ spec:
             path: /var/log
       tolerations:
         - operator: Exists
-      nodeSelector: {}
