@@ -3,8 +3,6 @@ kind: DaemonSet
 metadata:
   name: grafana-agent
   namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
   labels:
     app: grafana-agent
 spec:
