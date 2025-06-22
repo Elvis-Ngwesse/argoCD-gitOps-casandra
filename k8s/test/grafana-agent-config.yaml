@@ -9,9 +9,8 @@ data:
   agent.yaml: |
     server:
       log_level: info
-      http:
-        listen_address: 0.0.0.0
-        listen_port: 12345
+      http_listen_address: 0.0.0.0
+      http_listen_port: 12345
 
     prometheus:
       wal_directory: /tmp/grafana-agent-wal
