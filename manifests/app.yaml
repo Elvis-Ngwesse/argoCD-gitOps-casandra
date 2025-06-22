@@ -9,6 +9,13 @@ spec:
     repoURL: https://github.com/Elvis-Ngwesse/argoCD-mongodb
     targetRevision: main
     path: k8s
+    helm:
+      valueFiles:
+        - values.yaml
+      releaseName: grafana-agent
+      parameters:
+        - name: agent.mode
+          value: flow
   destination:
     server: https://kubernetes.default.svc
     namespace: test  # Namespace for deploying your app

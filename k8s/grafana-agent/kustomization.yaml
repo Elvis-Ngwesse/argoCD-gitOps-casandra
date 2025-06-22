@@ -9,9 +9,3 @@ configMapGenerator:
       - config.river
     options:
       disableNameSuffixHash: true
-
-resources:
-  - https://github.com/grafana/helm-charts/releases/download/grafana-agent-6.16.0/grafana-agent-6.16.0.tgz
-
-patchesStrategicMerge:
-  - values-patch.yaml
