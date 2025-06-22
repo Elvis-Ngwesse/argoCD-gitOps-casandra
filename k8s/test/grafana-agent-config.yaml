@@ -9,7 +9,7 @@ data:
   agent.yaml: |
     server:
       log_level: info
-  
+
     prometheus:
       wal_directory: /tmp/grafana-agent-wal
       global:
@@ -25,9 +25,7 @@ data:
     integrations:
       node_exporter:
         enabled: true
-        config:
-          rootfs: /host
-    
+        rootfs: /host
     
     logs:
       configs:
@@ -44,4 +42,3 @@ data:
                   labels:
                     job: varlogs
                     __path__: /var/log/**/*.log
-  
