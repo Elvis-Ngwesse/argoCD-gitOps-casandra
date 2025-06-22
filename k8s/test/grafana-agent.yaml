@@ -65,7 +65,6 @@ spec:
           image: grafana/agent:v0.44.3
           args:
             - --config.file=/etc/agent/agent.yaml
-            - --enable-features=logscraping
           volumeMounts:
             - name: config
               mountPath: /etc/agent
