@@ -88,6 +88,7 @@ spec:
       containers:
         - name: grafana-agent
           image: grafana/agent:v0.38.0
+          command: ["grafana-agent"]
           args:
             - run
             - /etc/agent/config.river
