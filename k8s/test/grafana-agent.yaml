@@ -1,63 +1,55 @@
----
-# ---------------------------------------------------
-# Grafana Agent ConfigMap
-# ---------------------------------------------------
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-agent-config
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "6"
-  labels:
-    app: grafana-agent
+    argocd.argoproj.io/sync-wave: "4"
 data:
   agent.yaml: |
     server:
       log_level: info
-      http_listen_port: 12345
 
-    metrics:
-      global:
-        scrape_interval: 15s
-      configs:
-        - name: default
-          scrape_configs:
-            - job_name: flask-service
-              static_configs:
-                - targets: ['flask-service.test.svc.cluster.local:5000']
-            - job_name: flask-minio-service
-              static_configs:
-                - targets: ['flask-minio-service.test.svc.cluster.local:5002']
-    
+    integrations:
+      agent:
+        enabled: true
+
     logs:
-      positions_directory: /tmp/positions
       configs:
-        - name: default
+        - name: kubernetes-logs
           clients:
-            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
+            - url: http://loki.logging.svc:3100/loki/api/v1/push
+          positions:
+            filename: /tmp/positions.yaml
+          target_config:
+            sync_period: 10s
           scrape_configs:
-            - job_name: container_logs
-              static_configs:
-                - targets: [localhost]
-                  labels:
-                    job: container_logs
-                    __path__: /var/log/pods/*/*/*.log
-                    __tenant__: default
-
+            - job_name: kubernetes-pods
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_label_name]
+                  target_label: app
+                - action: labelmap
+                  regex: __meta_kubernetes_pod_label_(.+)
+                - source_labels: [__meta_kubernetes_namespace]
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  target_label: pod
+                - source_labels: [__meta_kubernetes_pod_container_name]
+                  target_label: container
+                - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+                  separator: /
+                  target_label: __path__
+                  replacement: /var/log/pods/*$1/*.log
 ---
-# ---------------------------------------------------
-# Grafana Agent DaemonSet
-# ---------------------------------------------------
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: grafana-agent
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "7"
-  labels:
-    app: grafana-agent
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   selector:
     matchLabels:
@@ -69,20 +61,21 @@ spec:
     spec:
       serviceAccountName: grafana-agent
       containers:
-        - name: agent
-          image: grafana/agent:v0.39.1
+        - name: grafana-agent
+          image: grafana/agent:v0.44.3
           args:
             - --config.file=/etc/agent/agent.yaml
-          ports:
-            - containerPort: 12345
-              name: metrics
+            - --enable-features=logscraping
           volumeMounts:
             - name: config
               mountPath: /etc/agent
             - name: varlog
               mountPath: /var/log
+            - name: dockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
             - name: positions
-              mountPath: /tmp/positions
+              mountPath: /tmp
       volumes:
         - name: config
           configMap:
@@ -90,6 +83,8 @@ spec:
         - name: varlog
           hostPath:
             path: /var/log
-            type: DirectoryOrCreate
+        - name: dockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
         - name: positions
           emptyDir: {}
