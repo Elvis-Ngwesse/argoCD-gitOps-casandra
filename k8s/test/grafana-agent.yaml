@@ -1,46 +1,48 @@
-apiVersion: apps/v1
-kind: DaemonSet
+apiVersion: monitoring.grafana.com/v1alpha1
+kind: GrafanaAgent
 metadata:
   name: grafana-agent
   namespace: logging
-  labels:
-    app: grafana-agent
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 spec:
-  selector:
-    matchLabels:
-      app: grafana-agent
-  template:
-    metadata:
-      labels:
-        app: grafana-agent
-    spec:
-      serviceAccountName: grafana-agent
-      containers:
-        - name: grafana-agent
-          image: grafana/agent:v0.39.0
-          command: [ "grafana-agent" ]
-          args: [ "run", "--config.file=/etc/agent/config.river" ]
-          volumeMounts:
-            - name: config
-              mountPath: /etc/agent
-              readOnly: true
-          ports:
-            - name: http-metrics
-              containerPort: 12345
-          resources:
-            limits:
-              cpu: 200m
-              memory: 200Mi
-            requests:
-              cpu: 100m
-              memory: 100Mi
-          securityContext:
-            runAsUser: 1000
-            allowPrivilegeEscalation: false
-      volumes:
-        - name: config
-          configMap:
-            name: grafana-agent-config
-      tolerations:
-        - operator: Exists
-      nodeSelector: {}
+  image: grafana/agent:v0.44.3
+  serviceAccountName: grafana-agent
+
+  metrics:
+    wal_directory: /tmp/wal
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+    remote_write:
+      - url: http://prometheus.loging.svc.cluster.local:9090/api/v1/write
+
+  logs:
+    positions_directory: /tmp/positions
+    clients:
+      - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+    scrape_configs:
+      - job_name: kubernetes-pods-logs
+        kubernetes_sd_configs:
+          - role: pod
+        pipeline_stages:
+          - docker: {}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: job
