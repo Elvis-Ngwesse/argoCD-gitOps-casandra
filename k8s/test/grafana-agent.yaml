@@ -10,36 +10,95 @@ data:
     server:
       log_level: info
 
-    integrations:
-      agent:
-        enabled: true
-
-    logs:
+    metrics:
+      wal_directory: /tmp/wal
+      global:
+        scrape_interval: 60s
       configs:
-        - name: kubernetes-logs
-          clients:
-            - url: http://loki.logging.svc:3100/loki/api/v1/push
-          positions:
-            filename: /tmp/positions.yaml
-          target_config:
-            sync_period: 10s
+        - name: kubernetes
           scrape_configs:
-            - job_name: kubernetes-pods
+            - job_name: 'kubelet-cadvisor'
+              scheme: https
+              tls_config:
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                insecure_skip_verify: false
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              kubernetes_sd_configs:
+                - role: node
+              relabel_configs:
+                - source_labels: [__address__]
+                  regex: '(.*):10250'
+                  replacement: '${1}:10250'
+                  target_label: __address__
+              metrics_path: /metrics/cadvisor
+
+            - job_name: 'argocd-flask-apps'
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
-                - source_labels: [__meta_kubernetes_pod_label_name]
-                  target_label: app
-                - action: labelmap
-                  regex: __meta_kubernetes_pod_label_(.+)
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: keep
+                  regex: test
+                - source_labels: [__meta_kubernetes_pod_label_app]
+                  action: keep
+                  regex: argocd-app|flask-minio
+                - source_labels: [__meta_kubernetes_pod_container_port_name]
+                  action: keep
+                  regex: metrics|http|web|prometheus|9102|5000|5002
+                - source_labels: [__meta_kubernetes_pod_ip]
+                  target_label: __address__
+                  regex: (.+)
+                  replacement: $1:9102
+
+            - job_name: 'kubelet'
+              scheme: https
+              tls_config:
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                insecure_skip_verify: false
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              kubernetes_sd_configs:
+                - role: node
+              relabel_configs:
+                - source_labels: [__address__]
+                  regex: '(.*):10250'
+                  replacement: '${1}:10250'
+                  target_label: __address__
+              metrics_path: /metrics/resource
+
+            - job_name: 'kube-state-metrics'
+              static_configs:
+                - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+
+            - job_name: 'kubernetes-pods-metrics'
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
                 - source_labels: [__meta_kubernetes_namespace]
                   target_label: namespace
                 - source_labels: [__meta_kubernetes_pod_name]
                   target_label: pod
                 - source_labels: [__meta_kubernetes_pod_container_name]
                   target_label: container
+
+    logs:
+      configs:
+        - name: default
+          positions:
+            filename: /tmp/positions.yaml
+          clients:
+            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
+          scrape_configs:
+            - job_name: kubernetes-pods
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_pod_node_name]
+                  action: keep
+                  regex: ${HOSTNAME}
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: drop
+                  regex: grafana-agent
                 - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
-                  separator: /
                   target_label: __path__
                   replacement: /var/log/pods/*$1/*.log
 ---
@@ -49,7 +108,7 @@ metadata:
   name: grafana-agent
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   selector:
     matchLabels:
@@ -60,9 +119,16 @@ spec:
         app: grafana-agent
     spec:
       serviceAccountName: grafana-agent
+      securityContext:
+        runAsUser: 0
       containers:
         - name: grafana-agent
-          image: grafana/agent:v0.44.3
+          image: grafana/agent:v0.43.2
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           args:
             - --config.file=/etc/agent/agent.yaml
           volumeMounts:
@@ -70,11 +136,27 @@ spec:
               mountPath: /etc/agent
             - name: varlog
               mountPath: /var/log
+              readOnly: true
             - name: dockercontainers
               mountPath: /var/lib/docker/containers
               readOnly: true
             - name: positions
               mountPath: /tmp
+            - name: wal
+              mountPath: /tmp/wal
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "200Mi"
+            limits:
+              cpu: "500m"
+              memory: "500Mi"
+          livenessProbe:
+            httpGet:
+              path: /-/ready
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
       volumes:
         - name: config
           configMap:
@@ -86,4 +168,6 @@ spec:
           hostPath:
             path: /var/lib/docker/containers
         - name: positions
+          emptyDir: {}
+        - name: wal
           emptyDir: {}
