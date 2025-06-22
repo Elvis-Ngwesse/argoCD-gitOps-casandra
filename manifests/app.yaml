@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/Elvis-Ngwesse/argoCD-mongodb
     targetRevision: main
-    path: k8s/test
+    path: k8s
     helm:
       valueFiles:
         - values.yaml
