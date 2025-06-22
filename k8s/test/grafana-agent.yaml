@@ -28,14 +28,9 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/agent
-            - name: proc
-              mountPath: /host/proc
               readOnly: true
-            - name: sys
-              mountPath: /host/sys
-              readOnly: true
-            - name: cgroup
-              mountPath: /host/sys/fs/cgroup
+            - name: host-root
+              mountPath: /host
               readOnly: true
             - name: varlog
               mountPath: /var/log
@@ -54,15 +49,9 @@ spec:
         - name: config
           configMap:
             name: grafana-agent-config
-        - name: proc
+        - name: host-root
           hostPath:
-            path: /proc
-        - name: sys
-          hostPath:
-            path: /sys
-        - name: cgroup
-          hostPath:
-            path: /sys/fs/cgroup
+            path: /
         - name: varlog
           hostPath:
             path: /var/log
