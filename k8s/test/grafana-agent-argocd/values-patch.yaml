@@ -1,0 +1,16 @@
+apiVersion: helm.sh/v1
+kind: HelmRelease
+metadata:
+  name: grafana-agent
+spec:
+  valuesFrom:
+    - configMapKeyRef:
+        name: agent-config
+        key: config.river
+  values:
+    agent:
+      mode: flow
+      configMap:
+        create: false
+        name: agent-config
+        key: config.river
