@@ -1,14 +1,95 @@
-apiVersion: monitoring.grafana.com/v1alpha1
-kind: GrafanaAgentMetricsInstance
+---
+# ---------------------------------------------------
+# Grafana Agent ConfigMap
+# ---------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: metrics-instance
+  name: grafana-agent-config
   namespace: logging
-  labels:
-    agent: grafana-agent-metrics
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "6"
+  labels:
+    app: grafana-agent
+data:
+  agent.yaml: |
+    server:
+      log_level: info
+      http_listen_port: 12345
+
+    metrics:
+      global:
+        scrape_interval: 15s
+      configs:
+        - name: default
+          scrape_configs:
+            - job_name: flask-service
+              static_configs:
+                - targets: ['flask-service.test.svc.cluster.local:5000']
+            - job_name: flask-minio-service
+              static_configs:
+                - targets: ['flask-minio-service.test.svc.cluster.local:5002']
+    
+    logs:
+      positions_directory: /tmp/positions
+      configs:
+        - name: default
+          clients:
+            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
+          scrape_configs:
+            - job_name: container_logs
+              static_configs:
+                - targets: [localhost]
+                  labels:
+                    job: container_logs
+                    __path__: /var/log/pods/*/*/*.log
+                    __tenant__: default
+
+---
+# ---------------------------------------------------
+# Grafana Agent DaemonSet
+# ---------------------------------------------------
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: grafana-agent
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "7"
+  labels:
+    app: grafana-agent
 spec:
-  scrapeConfigs:
-    - jobName: 'node-exporter'
-      staticConfigs:
-        - targets: ['node-exporter.test.svc.cluster.local:9100']
+  selector:
+    matchLabels:
+      app: grafana-agent
+  template:
+    metadata:
+      labels:
+        app: grafana-agent
+    spec:
+      serviceAccountName: grafana-agent
+      containers:
+        - name: agent
+          image: grafana/agent:v0.39.1
+          args:
+            - --config.file=/etc/agent/agent.yaml
+          ports:
+            - containerPort: 12345
+              name: metrics
+          volumeMounts:
+            - name: config
+              mountPath: /etc/agent
+            - name: varlog
+              mountPath: /var/log
+            - name: positions
+              mountPath: /tmp/positions
+      volumes:
+        - name: config
+          configMap:
+            name: grafana-agent-config
+        - name: varlog
+          hostPath:
+            path: /var/log
+            type: DirectoryOrCreate
+        - name: positions
+          emptyDir: {}
