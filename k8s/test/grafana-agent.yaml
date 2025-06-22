@@ -21,8 +21,7 @@ spec:
         - name: grafana-agent
           image: grafana/agent:v0.39.0
           args:
-            - run
-            - /etc/agent/config.river
+            - --config.file=/etc/agent/config.river
           volumeMounts:
             - name: config
               mountPath: /etc/agent
