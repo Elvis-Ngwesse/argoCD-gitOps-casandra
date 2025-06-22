@@ -172,3 +172,18 @@ spec:
           emptyDir: {}
         - name: wal
           emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-agent
+  namespace: logging
+  labels:
+    app: grafana-agent
+spec:
+  selector:
+    app: grafana-agent
+  ports:
+    - name: http-metrics
+      port: 8080
+      targetPort: 8080
