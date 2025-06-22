@@ -7,64 +7,60 @@ kind: ConfigMap
 metadata:
   name: grafana-agent-config
   namespace: logging
+  labels:
+    app.kubernetes.io/name: grafana-agent
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 data:
-  agent.yaml: |
-    server:
-      http_listen_address: 0.0.0.0
-      http_listen_port: 12345
+  config.river: |
+    logging {
+      level  = "info"
+      format = "logfmt"
+    }
 
-    metrics:
-      wal_directory: /tmp/wal
-      global:
-        scrape_interval: 60s
-      configs:
-        - name: default
-          scrape_configs:
-            - job_name: flask-service
-              static_configs:
-                - targets: ['flask-service.test.svc.cluster.local:5000']
-            - job_name: flask-minio-service
-              static_configs:
-                - targets: ['flask-minio-service.test.svc.cluster.local:5002']
-          remote_write:
-            - url: http://prometheus.logging.svc.cluster.local:9090/api/v1/write
+    local.file "positions" {
+      filename = "/tmp/positions.yaml"
+    }
 
-    logs:
-      configs:
-        - name: default
-          positions:
-            filename: /tmp/positions.yaml
-          clients:
-            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
-          scrape_configs:
-            - job_name: kubernetes-pods
-              kubernetes_sd_configs:
-                - role: pod
-              relabel_configs:
-                # Keep only test and logging namespaces
-                - source_labels: [__meta_kubernetes_namespace]
-                  regex: test|logging
-                  action: keep
+    discovery.kubernetes "pods" {
+      role = "pod"
+    }
 
-                # Extract namespace label
-                - source_labels: [__meta_kubernetes_namespace]
-                  target_label: namespace
+    loki.source.kubernetes "logs" {
+      targets    = discovery.kubernetes.pods.targets
+      forward_to = [loki.process.kubernetes.receiver]
+    }
 
-                # Extract pod label
-                - source_labels: [__meta_kubernetes_pod_name]
-                  target_label: pod
+    loki.process "kubernetes" {
+      stage.file_log {
+        include      = ["/var/log/pods/*/*/*.log"]
+        start_at     = "beginning"
+        timestamp    = "auto"
+        labels       = {
+          job = "kubernetes-pods"
+        }
+        forward_to = [loki.write.local.receiver]
+      }
+    }
 
-                # Extract container label
-                - source_labels: [__meta_kubernetes_pod_container_name]
-                  target_label: container
+    loki.write "local" {
+      endpoint {
+        url = "http://loki.logging.svc.cluster.local:3100/loki/api/v1/push"
+      }
+    }
 
-                # Set the path to the pod logs on the host
-                - action: replace
-                  source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
-                  target_label: __path__
-                  replacement: /var/log/pods/*/*/*.log
+    prometheus.scrape "kubelet" {
+      targets = [
+        "localhost:10255"
+      ]
+      forward_to = [prometheus.remote_write.local.receiver]
+    }
+
+    prometheus.remote_write "local" {
+      endpoint {
+        url = "http://prometheus.logging.svc.cluster.local:9090/api/v1/write"
+      }
+    }
 
 ---
 # ---------------------------------------------------
@@ -75,45 +71,40 @@ kind: DaemonSet
 metadata:
   name: grafana-agent
   namespace: logging
+  labels:
+    app.kubernetes.io/name: grafana-agent
   annotations:
     argocd.argoproj.io/sync-wave: "5"
-  labels:
-    app: grafana-agent
 spec:
   selector:
     matchLabels:
-      app: grafana-agent
+      app.kubernetes.io/name: grafana-agent
   template:
     metadata:
       labels:
-        app: grafana-agent
+        app.kubernetes.io/name: grafana-agent
     spec:
       serviceAccountName: grafana-agent
-      securityContext:
-        runAsUser: 0
-      containers:
-        - name: grafana-agent
-          image: grafana/agent:v0.43.2
-          args:
-            - --config.file=/etc/agent/agent.yaml
-          volumeMounts:
-            - name: config
-              mountPath: /etc/agent
-            - name: varlogpods
-              mountPath: /var/log/pods
-              readOnly: true
-            - name: positions
-              mountPath: /run/promtail
       volumes:
         - name: config
           configMap:
             name: grafana-agent-config
-        - name: varlogpods
-          hostPath:
-            path: /var/log/pods
-            type: Directory
         - name: positions
           emptyDir: {}
+      containers:
+        - name: grafana-agent
+          image: grafana/agent:v0.38.0
+          args:
+            - run
+            - /etc/agent/config.river
+          volumeMounts:
+            - name: config
+              mountPath: /etc/agent
+            - name: positions
+              mountPath: /tmp
+          ports:
+            - name: http-metrics
+              containerPort: 12345
 
 ---
 # ---------------------------------------------------
@@ -131,7 +122,8 @@ spec:
     app: grafana-agent
   ports:
     - protocol: TCP
-      port: 12345
-      targetPort: 12345
+      port: 12345         # Exposes port 12345 on the Service
+      targetPort: 12345   # Maps to containerPort 12345
       name: http-metrics
-  type: ClusterIP
+  type: ClusterIP         # Default type; exposes service within the cluster
+
