@@ -87,10 +87,10 @@ spec:
           emptyDir: {}
       containers:
         - name: grafana-agent
-          image: grafana/agent:v0.38.0
+          image: grafana/agent:v0.39.0
           args:
             - run
-            - --config.file=/etc/agent/agent.yaml
+            - /etc/agent/config.river
           volumeMounts:
             - name: config
               mountPath: /etc/agent
