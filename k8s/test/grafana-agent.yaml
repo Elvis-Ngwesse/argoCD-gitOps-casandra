@@ -19,19 +19,17 @@ spec:
       serviceAccountName: grafana-agent
       containers:
         - name: grafana-agent
-          image: grafana/agent:v0.40.1
+          image: grafana/agent:v0.39.0
           args:
-            - --config.file=/etc/agent/config.river
+            - run
+            - /etc/agent/config.river
           volumeMounts:
             - name: config
               mountPath: /etc/agent
               readOnly: true
-            - name: host-root
-              mountPath: /host
-              readOnly: true
-            - name: varlog
-              mountPath: /var/log
-              readOnly: true
+          ports:
+            - name: http-metrics
+              containerPort: 12345
           resources:
             limits:
               cpu: 200m
@@ -46,11 +44,6 @@ spec:
         - name: config
           configMap:
             name: grafana-agent-config
-        - name: host-root
-          hostPath:
-            path: /
-        - name: varlog
-          hostPath:
-            path: /var/log
       tolerations:
         - operator: Exists
+      nodeSelector: {}

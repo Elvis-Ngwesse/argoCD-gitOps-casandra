@@ -3,41 +3,22 @@ kind: ConfigMap
 metadata:
   name: grafana-agent-config
   namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
 data:
   config.river: |
-    logging {
-      level  = "info"
-      format = "logfmt"
+    // Discover Kubernetes pods to collect metrics from
+    discovery.kubernetes "pods" {
+      role = "pod"
     }
 
+    // Scrape metrics from discovered pods and forward to remote write
+    prometheus.scrape "default" {
+      targets    = discovery.kubernetes.pods.targets
+      forward_to = [prometheus.remote_write.default.receiver]
+    }
+
+    // Send metrics to Prometheus remote_write endpoint (no auth)
     prometheus.remote_write "default" {
       endpoint {
-        url = "http://prometheus-operated.logging.svc:9090/api/v1/write"
+        url = "http://localhost:9009/api/prom/push"
       }
-    }
-
-    integration.node_exporter "default" {
-      enabled = true
-      rootfs  = "/host"
-    }
-
-    prometheus.scrape "default" {
-      targets = [ "localhost:9100" ]
-      forward_to = [ prometheus.remote_write.default.receiver ]
-    }
-
-    loki.write "default" {
-      endpoint {
-        url = "http://loki.logging.svc.cluster.local:3100/loki/api/v1/push"
-      }
-    }
-
-    loki.source.file "varlogs" {
-      targets = [{
-        __path__ = "/var/log/**/*.log"
-        job      = "varlogs"
-      }]
-      forward_to = [loki.write.default.receiver]
     }
