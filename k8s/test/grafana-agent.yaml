@@ -7,10 +7,6 @@ kind: ConfigMap
 metadata:
   name: grafana-agent-config
   namespace: logging
-  labels:
-    app.kubernetes.io/name: grafana-agent
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
 data:
   config.river: |
     logging {
@@ -26,17 +22,17 @@ data:
       role = "pod"
     }
 
-    loki.source.kubernetes "logs" {
+    loki.source.kubernetes "podlogs" {
       targets    = discovery.kubernetes.pods.targets
-      forward_to = [loki.process.kubernetes.receiver]
+      forward_to = [loki.process.podlogs.receiver]
     }
 
-    loki.process "kubernetes" {
+    loki.process "podlogs" {
       stage.file_log {
-        include      = ["/var/log/pods/*/*/*.log"]
-        start_at     = "beginning"
-        timestamp    = "auto"
-        labels       = {
+        include   = ["/var/log/pods/*/*/*.log"]
+        start_at  = "beginning"
+        timestamp = "auto"
+        labels = {
           job = "kubernetes-pods"
         }
         forward_to = [loki.write.local.receiver]
@@ -50,15 +46,13 @@ data:
     }
 
     prometheus.scrape "kubelet" {
-      targets = [
-        "localhost:10255"
-      ]
+      targets = ["localhost:10255"]
       forward_to = [prometheus.remote_write.local.receiver]
     }
 
     prometheus.remote_write "local" {
       endpoint {
-        url = "http://prometheus.logging.svc.cluster.local:9090/api/v1/write"
+        url = "http://prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
       }
     }
 
@@ -113,13 +107,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: grafana-agent
+  name: grafana-agent¥
   namespace: logging
   labels:
-    app: grafana-agent
+    app.kubernetes.io/name: grafana-agent
 spec:
   selector:
-    app: grafana-agent
+    app.kubernetes.io/name: grafana-agent
   ports:
     - protocol: TCP
       port: 12345         # Exposes port 12345 on the Service
