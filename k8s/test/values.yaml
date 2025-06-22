@@ -1,6 +1,0 @@
-agent:
-  mode: flow
-  configMap:
-    create: false
-    name: agent-config
-    key: config.river

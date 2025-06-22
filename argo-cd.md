@@ -138,6 +138,8 @@ argocd app sync python-mongodb-test
 
 ```bash
 argocd app delete python-mongo-app --cascade
+argocd app sync python-mongo-app --prune
+
 ```
 
 ---
@@ -296,3 +298,12 @@ minikube service flask-service -n test --url
 curl -G "http://127.0.0.1:56763/loki/api/v1/query" \
 --data-urlencode 'query={job="docker-logs"}' \
 --data-urlencode 'limit=5'
+
+
+
+kubectl edit configmap argocd-rbac-cm -n argocd
+data:
+policy.csv: |
+p, role:admin, applications, *, */*, allow
+g, admin, role:admin
+argocd account get-user-info
