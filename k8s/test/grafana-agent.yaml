@@ -19,7 +19,7 @@ spec:
       serviceAccountName: grafana-agent
       containers:
         - name: grafana-agent
-          image: grafana/agent:v0.39.0
+          image: grafana/agent:v0.40.1
           args:
             - --config.file=/etc/agent/config.river
           volumeMounts:
