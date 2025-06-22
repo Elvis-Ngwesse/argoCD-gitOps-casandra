@@ -1,0 +1,14 @@
+apiVersion: monitoring.grafana.com/v1alpha1
+kind: GrafanaAgentMetricsInstance
+metadata:
+  name: metrics-instance
+  namespace: logging
+  labels:
+    agent: grafana-agent-metrics
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  scrapeConfigs:
+    - jobName: 'node-exporter'
+      staticConfigs:
+        - targets: ['node-exporter.test.svc.cluster.local:9100']
