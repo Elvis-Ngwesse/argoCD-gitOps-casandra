@@ -88,10 +88,9 @@ spec:
       containers:
         - name: grafana-agent
           image: grafana/agent:v0.38.0
-          command:
-            - sh
-            - -c
-            - grafana-agent run /etc/agent/config.river
+          args:
+            - run
+            - --config.file=/etc/agent/agent.yaml
           volumeMounts:
             - name: config
               mountPath: /etc/agent
