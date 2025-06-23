@@ -56,8 +56,7 @@ data:
                   target_label: __address__
                   regex: (.+);(.+)
                   replacement: $1:$2
-            
-              metrics_path: /metrics
+          
 
             - job_name: 'kubelet'
               scheme: https
