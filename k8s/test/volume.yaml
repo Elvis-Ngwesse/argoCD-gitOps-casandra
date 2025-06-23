@@ -36,24 +36,8 @@ spec:
   storageClassName: ""
 ---
 # ---------------------------------------------------
-# 2. PersistentVolume + PVC (Grafana-pv-pvc)
+# 2. PersistentVolumeClaim (Grafana-pvc)
 # ---------------------------------------------------
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: grafana-pv
-  annotations:
-    argocd.argoproj.io/sync-wave: "3"
-spec:
-  capacity:
-    storage: 5Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: ""
-  hostPath:
-    path: /mnt/data/grafana
-    type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -61,15 +45,13 @@ metadata:
   name: grafana-storage
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 5Gi
-  storageClassName: ""
-  volumeName: grafana-pv
 ---
 # ---------------------------------------------------
 # 4. PersistentVolume + PVC (promtail-positions-pv)

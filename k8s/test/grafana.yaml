@@ -1,6 +1,6 @@
 ---
 # ---------------------------------------------------
-#  Grafana Config
+# Grafana Loki Datasource Config
 # ---------------------------------------------------
 apiVersion: v1
 kind: ConfigMap
@@ -22,7 +22,7 @@ data:
         isDefault: true
 ---
 # ---------------------------------------------------
-#  Grafana Deployment + Service
+# Grafana Deployment
 # ---------------------------------------------------
 apiVersion: apps/v1
 kind: Deployment
@@ -30,7 +30,7 @@ metadata:
   name: grafana
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "6"
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   replicas: 1
   selector:
@@ -79,13 +79,17 @@ spec:
         - name: grafana-datasources
           configMap:
             name: grafana-datasources
-
 ---
+# ---------------------------------------------------
+# Grafana Service (NodePort)
+# ---------------------------------------------------
 apiVersion: v1
 kind: Service
 metadata:
   name: grafana
   namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   type: NodePort
   selector:
@@ -94,4 +98,5 @@ spec:
     - port: 80
       targetPort: 3000
       nodePort: 32000
+      protocol: TCP
       name: http

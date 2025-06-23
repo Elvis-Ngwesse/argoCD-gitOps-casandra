@@ -307,3 +307,9 @@ policy.csv: |
 p, role:admin, applications, *, */*, allow
 g, admin, role:admin
 argocd account get-user-info
+
+
+curl -G -s "http://<loki-service-ip>:3100/loki/api/v1/query_range" \
+--data-urlencode 'query={job="varlogs"}' \
+--data-urlencode 'limit=10' \
+--data-urlencode 'start=2025-05-23T00:00:00Z'
