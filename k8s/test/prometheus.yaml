@@ -24,46 +24,41 @@ data:
         kubernetes_sd_configs:
           - role: pod
         relabel_configs:
+          # Only target pods in the 'test' namespace
           - source_labels: [__meta_kubernetes_namespace]
             action: keep
             regex: test
+      
+          # Only keep desired apps
           - source_labels: [__meta_kubernetes_pod_label_app]
             action: keep
             regex: argocd-app|flask-minio
-          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port_number]
+      
+          # Respect prometheus.io/scrape == "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+      
+          # Set the port from prometheus.io/port annotation (if present)
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
             action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: $1
+      
+          # Append pod IP to port if port was annotated
+          - source_labels: [__meta_kubernetes_pod_ip, __address__]
             separator: ":"
             target_label: __address__
-
-      - job_name: 'mongo'
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_namespace]
-            action: keep
-            regex: test
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            action: keep
-            regex: mongo
-          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port_number]
+            regex: (.+);(.+)
+            replacement: $1:$2
+      
+          # Set the correct metrics path from annotation (optional)
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
             action: replace
-            separator: ":"
-            target_label: __address__
-
-      - job_name: 'minio'
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          - source_labels: [__meta_kubernetes_namespace]
-            action: keep
-            regex: test
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            action: keep
-            regex: minio
-          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port_number]
-            action: replace
-            separator: ":"
-            target_label: __address__
+            target_label: __metrics_path__
+            regex: (.+)
+            replacement: $1
 
 ---
 # ---------------------------------------------------
