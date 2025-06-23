@@ -72,3 +72,21 @@ spec:
   resources:
     requests:
       storage: 5Gi
+---
+# ---------------------------------------------------
+# 3. PersistentVolume (Mongo)
+# ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mongo-pv
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  hostPath:
+    path: /mnt/data/mongo
