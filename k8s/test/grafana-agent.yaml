@@ -101,25 +101,15 @@ data:
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
-                # Keep pods only in test or logging namespaces
-                - source_labels: [__meta_kubernetes_namespace]
-                  action: keep
-                  regex: test|logging
-
-                # Keep pods running on this node only (optional, keep your original filter if needed)
-                - source_labels: [__meta_kubernetes_pod_node_name]
-                  action: keep
-                  regex: ${HOSTNAME}
-
-                # Drop pods from grafana-agent namespace (if you want)
-                - source_labels: [__meta_kubernetes_namespace]
-                  action: drop
-                  regex: grafana-agent
-
-                # Set log file path per pod container
-                - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
-                  target_label: __path__
-                  replacement: /var/log/pods/*$1/*.log
+              - source_labels: [__meta_kubernetes_namespace]
+                action: keep
+                regex: test|logging
+              - source_labels: [__meta_kubernetes_namespace]
+                action: drop
+                regex: grafana-agent
+              - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+                target_label: __path__
+                replacement: /var/log/pods/*$1/*$2/*.log
 ---
 
 apiVersion: apps/v1
