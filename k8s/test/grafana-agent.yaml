@@ -16,22 +16,6 @@ data:
         scrape_interval: 60s  # How often to scrape targets
 
       configs:
-        - name: kubelet-cadvisor
-          # Scrape metrics from kubelet cAdvisor on all nodes
-          scheme: https
-          tls_config:
-            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-            insecure_skip_verify: false
-          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-          kubernetes_sd_configs:
-            - role: node
-          relabel_configs:
-            - source_labels: [__address__]
-              regex: '(.*):10250'
-              replacement: '${1}:10250'
-              target_label: __address__
-          metrics_path: /metrics/cadvisor
-
         - name: test-and-logging-apps
           # Scrape pods in test & logging namespaces with specific apps and ports
           kubernetes_sd_configs:
@@ -57,27 +41,6 @@ data:
               target_label: __address__
               regex: (.+);(.+)
               replacement: $1:$2
-
-        - name: kubelet
-          # Scrape kubelet resource metrics on nodes
-          scheme: https
-          tls_config:
-            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-            insecure_skip_verify: false
-          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-          kubernetes_sd_configs:
-            - role: node
-          relabel_configs:
-            - source_labels: [__address__]
-              regex: '(.*):10250'
-              replacement: '${1}:10250'
-              target_label: __address__
-          metrics_path: /metrics/resource
-
-        - name: kube-state-metrics
-          # Static scrape target for kube-state-metrics service
-          static_configs:
-            - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
 
         - name: kubernetes-pods-metrics
           # Scrape all pod metrics with pod and container labels for better filtering
@@ -112,6 +75,7 @@ data:
                 - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
                   target_label: __path__
                   replacement: /var/log/pods/*$1/*.log  # Log file path pattern for container logs
+
 
 ---
 
