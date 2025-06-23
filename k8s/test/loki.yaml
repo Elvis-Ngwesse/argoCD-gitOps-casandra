@@ -7,8 +7,6 @@ metadata:
   namespace: logging
   labels:
     app: loki
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
 spec:
   ports:
     - port: 3100
@@ -23,7 +21,7 @@ metadata:
   name: loki-config
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "2"
 data:
   local-config.yaml: |
     auth_enabled: false
@@ -85,7 +83,7 @@ metadata:
   labels:
     app: loki
   annotations:
-    argocd.argoproj.io/sync-wave: "6"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   serviceName: loki
   replicas: 1

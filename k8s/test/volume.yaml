@@ -138,7 +138,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: loki-storage-pvc
+  name: loki-storage
   namespace: logging
   annotations:
     argocd.argoproj.io/sync-wave: "2"
