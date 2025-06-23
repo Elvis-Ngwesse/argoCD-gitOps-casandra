@@ -8,9 +8,6 @@ metadata:
   namespace: test
   annotations:
     argocd.argoproj.io/sync-wave: "5"
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "8001"
-    prometheus.io/path: "/metrics"
 spec:
   replicas: 2
   selector:
@@ -20,6 +17,10 @@ spec:
     metadata:
       labels:
         app: argocd-app
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8001"
+      prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: argocd-app
@@ -59,9 +60,6 @@ metadata:
   namespace: test
   annotations:
     argocd.argoproj.io/sync-wave: "5"
-    prometheus.io/scrape: "true"
-    prometheus.io/port: "8002"
-    prometheus.io/path: "/metrics"
 spec:
   type: NodePort
   selector:
@@ -91,6 +89,10 @@ spec:
     metadata:
       labels:
         app: flask-minio
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8002"
+      prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: flask-minio
