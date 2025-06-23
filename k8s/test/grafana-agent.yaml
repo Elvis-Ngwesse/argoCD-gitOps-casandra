@@ -10,76 +10,86 @@ data:
     server:
       log_level: info
 
-    metrics:
-      wal_directory: /tmp/wal
+    metrics:                  
+      wal_directory: /tmp/wal 
       global:
         scrape_interval: 60s
+    
       configs:
-        - job_name: 'kubelet-cadvisor'
-          scheme: https
-          tls_config:
-            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-            insecure_skip_verify: false
-          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-          kubernetes_sd_configs:
-            - role: node
-          relabel_configs:
-            - source_labels: [__address__]
-              regex: '(.*):10250'
-              replacement: '${1}:10250'
-              target_label: __address__
-          metrics_path: /metrics/cadvisor
+        - name: kubernetes    
+          scrape_configs:   
     
-        - job_name: 'test-and-logging-apps'
-          kubernetes_sd_configs:
-            - role: pod
-          relabel_configs:
-            - source_labels: [__meta_kubernetes_namespace]
-              action: keep
-              regex: test|logging
-            - source_labels: [__meta_kubernetes_pod_label_app]
-              action: keep
-              regex: argocd-app|flask-minio|mongo|minio
-            - source_labels: [__meta_kubernetes_pod_container_port_name]
-              action: keep
-              regex: metrics|http|web|prometheus
-            - source_labels: [__meta_kubernetes_pod_container_port]
-              action: keep
-              regex: 9102|5000|5002|27017|9000|9001
-            - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port]
-              target_label: __address__
-              regex: (.+);(.+)
-              replacement: $1:$2
+            - job_name: 'kubelet-cadvisor' 
+              scheme: https
+              tls_config:
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                insecure_skip_verify: false
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              kubernetes_sd_configs:
     
-        - job_name: 'kubelet'
-          scheme: https
-          tls_config:
-            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-            insecure_skip_verify: false
-          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-          kubernetes_sd_configs:
-            - role: node
-          relabel_configs:
-            - source_labels: [__address__]
-              regex: '(.*):10250'
-              replacement: '${1}:10250'
-              target_label: __address__
-          metrics_path: /metrics/resource
-    
-        - job_name: 'kube-state-metrics'
-          static_configs:
-            - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
-    
-        - job_name: 'kubernetes-pods-metrics'
-          kubernetes_sd_configs:
-            - role: pod
-          relabel_configs:
-            - source_labels: [__meta_kubernetes_namespace]
-              target_label: namespace
-            - source_labels: [__meta_kubernetes_pod_name]
-              target_label: pod
-            - source_labels: [__meta_kubernetes_pod_container_name]
-              target_label: container
+                - role: node  
+              relabel_configs:
+                - source_labels: [__address__]
+                  regex: '(.*):10250'        
+                  replacement: '${1}:10250'
+                  target_label: __address__
+              metrics_path: /metrics/cadvisor 
+
+            - job_name: 'test-and-logging-apps'
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: keep
+                  regex: test|logging
+  
+                - source_labels: [__meta_kubernetes_pod_label_app]
+                  action: keep
+                  regex: argocd-app|flask-minio|mongo|minio
+          
+                - source_labels: [__meta_kubernetes_pod_container_port_name]
+                  action: keep
+                  regex: metrics|http|web|prometheus
+          
+                - source_labels: [__meta_kubernetes_pod_container_port]
+                  action: keep
+                  regex: 9102|5000|5002|27017|9000|9001
+          
+                - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port]
+                  target_label: __address__
+                  regex: (.+);(.+)
+                  replacement: $1:$2
+
+            - job_name: 'kubelet'
+              scheme: https
+              tls_config:
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                insecure_skip_verify: false
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              kubernetes_sd_configs:
+                - role: node
+              relabel_configs:
+                - source_labels: [__address__]
+                  regex: '(.*):10250'
+                  replacement: '${1}:10250'
+                  target_label: __address__
+              metrics_path: /metrics/resource
+
+            - job_name: 'kube-state-metrics'
+              static_configs:
+                - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+
+            - job_name: 'kubernetes-pods-metrics'
+              kubernetes_sd_configs:
+                - role: pod
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_namespace]
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  target_label: pod
+                - source_labels: [__meta_kubernetes_pod_container_name]
+                  target_label: container
+
     logs:
       configs:
         - name: default
