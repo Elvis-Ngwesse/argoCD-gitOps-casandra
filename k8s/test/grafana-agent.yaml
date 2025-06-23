@@ -42,15 +42,22 @@ data:
                 - source_labels: [__meta_kubernetes_namespace]
                   action: keep
                   regex: test|logging
-  
+            
                 - source_labels: [__meta_kubernetes_pod_label_app]
                   action: keep
-                  regex: argocd-app|flask-minio|mongo|minio
-          
-                - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port]
+                  regex: flask-minio|argocd-app|minio
+            
+                # Scrape metrics ports (argocd-app = 8001, flask-minio = 8002)
+                - source_labels: [__meta_kubernetes_pod_container_port]
+                  action: keep
+                  regex: 8001|8002|9000|9001
+            
+                - source_labels: [__meta_kubernetes_pod_ip,__meta_kubernetes_pod_container_port]
                   target_label: __address__
                   regex: (.+);(.+)
                   replacement: $1:$2
+            
+              metrics_path: /metrics
 
             - job_name: 'kubelet'
               scheme: https
