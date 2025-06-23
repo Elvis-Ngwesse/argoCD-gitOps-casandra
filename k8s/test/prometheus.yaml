@@ -20,7 +20,7 @@ data:
         static_configs:
           - targets: ['grafana-agent.logging.svc.cluster.local:12345']
 
-      - job_name: 'flask-apps'
+      - job_name: 'test-apps'
         kubernetes_sd_configs:
           - role: pod
         relabel_configs:
@@ -32,7 +32,7 @@ data:
           # Only keep desired apps
           - source_labels: [__meta_kubernetes_pod_label_app]
             action: keep
-            regex: argocd-app|flask-minio
+            regex: argocd-app|flask-minio|mongo|minio
       
           # Respect prometheus.io/scrape == "true"
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
