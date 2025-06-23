@@ -17,10 +17,10 @@ spec:
     metadata:
       labels:
         app: argocd-app
-    annotations:
-      prometheus.io/scrape: "true"
-      prometheus.io/port: "8001"
-      prometheus.io/path: "/metrics"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8001"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: argocd-app
@@ -89,10 +89,10 @@ spec:
     metadata:
       labels:
         app: flask-minio
-    annotations:
-      prometheus.io/scrape: "true"
-      prometheus.io/port: "8002"
-      prometheus.io/path: "/metrics"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: flask-minio
