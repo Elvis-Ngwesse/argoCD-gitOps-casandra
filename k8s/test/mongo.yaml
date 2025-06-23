@@ -32,6 +32,10 @@ spec:
     metadata:
       labels:
         app: mongo
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "27017"
+        prometheus.io/path: "/metrics"
     spec:
       affinity:
         podAntiAffinity:
