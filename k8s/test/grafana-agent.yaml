@@ -8,7 +8,7 @@ metadata:
 data:
   agent.yaml: |
     server:
-      log_level: info
+      log_level: debug
 
     metrics:                  
       wal_directory: /tmp/wal 
