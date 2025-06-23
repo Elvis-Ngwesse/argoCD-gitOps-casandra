@@ -9,7 +9,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
     prometheus.io/scrape: "true"
-    prometheus.io/port: "5000"
+    prometheus.io/port: "8001"
     prometheus.io/path: "/metrics"
 spec:
   replicas: 2
@@ -60,7 +60,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
     prometheus.io/scrape: "true"
-    prometheus.io/port: "5002"
+    prometheus.io/port: "8002"
     prometheus.io/path: "/metrics"
 spec:
   type: NodePort
