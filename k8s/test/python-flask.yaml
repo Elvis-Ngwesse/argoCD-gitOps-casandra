@@ -8,6 +8,8 @@ metadata:
   namespace: test
   annotations:
     argocd.argoproj.io/sync-wave: "5"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8081"
 spec:
   replicas: 2
   selector:
@@ -56,6 +58,8 @@ metadata:
   namespace: test
   annotations:
     argocd.argoproj.io/sync-wave: "5"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8082"
 spec:
   type: NodePort
   selector:

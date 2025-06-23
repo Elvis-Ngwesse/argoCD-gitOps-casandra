@@ -107,9 +107,9 @@ data:
               - source_labels: [__meta_kubernetes_namespace]
                 action: drop
                 regex: grafana-agent
-              - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+              - source_labels: [__meta_kubernetes_pod_name, __meta_kubernetes_namespace, __meta_kubernetes_container_name]
                 target_label: __path__
-                replacement: /var/log/pods/*$1/*$2/*.log
+                replacement: /var/log/containers/${1}_${2}_${3}-*.log
 ---
 
 apiVersion: apps/v1
@@ -147,6 +147,12 @@ spec:
             - name: varlog
               mountPath: /var/log
               readOnly: true
+            - name: varlog-containers
+              mountPath: /var/log/containers
+              readOnly: true
+            - name: varlog-pods
+              mountPath: /var/log/pods
+              readOnly: true
             - name: dockercontainers
               mountPath: /var/lib/docker/containers
               readOnly: true
@@ -174,13 +180,20 @@ spec:
         - name: varlog
           hostPath:
             path: /var/log
+        - name: varlog-containers
+          hostPath:
+            path: /var/log/containers
+        - name: varlog-pods
+          hostPath:
+            path: /var/log/pods
         - name: dockercontainers
           hostPath:
             path: /var/lib/docker/containers
         - name: positions
-          emptyDir: {}
+          emptyDir: { }
         - name: wal
-          emptyDir: {}
+          emptyDir: { }
+
 ---
 apiVersion: v1
 kind: Service
