@@ -23,43 +23,44 @@ data:
       - job_name: 'test-apps'
         kubernetes_sd_configs:
           - role: pod
+
         relabel_configs:
-          # Only target pods in the 'test' namespace
+          # Keep pods only in the 'test' namespace
           - source_labels: [__meta_kubernetes_namespace]
             action: keep
             regex: test
-      
-          # Only keep desired apps
+
+          # Keep only the correct apps
           - source_labels: [__meta_kubernetes_pod_label_app]
             action: keep
-            regex: argocd-app|flask-minio|mongo|minio
-      
-          # Respect prometheus.io/scrape == "true"
+            regex: argocd-app|flask-minio|minio|mongo
+
+          # Respect scrape annotation
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
             action: keep
             regex: "true"
-      
-          # Set the port from prometheus.io/port annotation (if present)
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
-            action: replace
-            target_label: __address__
-            regex: (.+)
-            replacement: $1
-      
-          # Append pod IP to port if port was annotated
-          - source_labels: [__meta_kubernetes_pod_ip, __address__]
-            separator: ":"
-            target_label: __address__
-            regex: (.+);(.+)
-            replacement: $1:$2
-      
-          # Set the correct metrics path from annotation (optional)
+
+          # Set the metrics path
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
             action: replace
             target_label: __metrics_path__
             regex: (.+)
             replacement: $1
 
+          # Set the port from the annotation
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            target_label: __tmp_port__
+            regex: (.+)
+            replacement: $1
+
+          # Combine Pod IP and port
+          - source_labels: [__meta_kubernetes_pod_ip, __tmp_port__]
+            action: replace
+            separator: ":"
+            target_label: __address__
+            regex: (.+);(.+)
+            replacement: $1:$2
 ---
 # ---------------------------------------------------
 #  Prometheus Deployment + Service
