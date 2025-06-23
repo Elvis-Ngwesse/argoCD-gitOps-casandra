@@ -5,98 +5,107 @@ metadata:
   namespace: logging
   annotations:
     argocd.argoproj.io/sync-wave: "4"
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-agent-config
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+    description: "Grafana Agent config for scraping Kubernetes metrics and logs in test & logging namespaces"
 data:
   agent.yaml: |
     server:
-      log_level: info
+      log_level: info  # Set log verbosity level for troubleshooting
 
-    metrics:                  
-      wal_directory: /tmp/wal 
+    metrics:
+      wal_directory: /tmp/wal  # Directory for write-ahead log (durability)
       global:
-        scrape_interval: 60s
-    
+        scrape_interval: 60s  # How often to scrape targets
+
       configs:
-        - name: kubernetes    
-          scrape_configs:   
-    
-            - job_name: 'kubelet-cadvisor' 
-              scheme: https
-              tls_config:
-                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-                insecure_skip_verify: false
-              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-              kubernetes_sd_configs:
-    
-                - role: node  
-              relabel_configs:
-                - source_labels: [__address__]
-                  regex: '(.*):10250'        
-                  replacement: '${1}:10250'
-                  target_label: __address__
-              metrics_path: /metrics/cadvisor 
+        - name: kubelet-cadvisor
+          # Scrape metrics from kubelet cAdvisor on all nodes
+          scheme: https
+          tls_config:
+            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            insecure_skip_verify: false
+          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+          kubernetes_sd_configs:
+            - role: node
+          relabel_configs:
+            - source_labels: [__address__]
+              regex: '(.*):10250'
+              replacement: '${1}:10250'
+              target_label: __address__
+          metrics_path: /metrics/cadvisor
 
-            - job_name: 'test-and-logging-apps'
-              kubernetes_sd_configs:
-                - role: pod
-              relabel_configs:
-                - source_labels: [__meta_kubernetes_namespace]
-                  action: keep
-                  regex: test|logging
-          
-                - source_labels: [__meta_kubernetes_pod_label_app]
-                  action: keep
-                  regex: argocd-app|flask-minio|mongo|minio
-          
-                - source_labels: [__meta_kubernetes_pod_container_port_name]
-                  action: keep
-                  regex: metrics|http|web|prometheus
-          
-                - source_labels: [__meta_kubernetes_pod_container_port]
-                  action: keep
-                  regex: 9102|5000|5002|27017|9000|9001
-          
-                - source_labels: [__meta_kubernetes_pod_ip __meta_kubernetes_pod_container_port]
-                  target_label: __address__
-                  regex: (.+);(.+)
-                  replacement: $1:$2
+        - name: test-and-logging-apps
+          # Scrape pods in test & logging namespaces with specific apps and ports
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_namespace]
+              action: keep
+              regex: test|logging
 
-            - job_name: 'kubelet'
-              scheme: https
-              tls_config:
-                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-                insecure_skip_verify: false
-              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-              kubernetes_sd_configs:
-                - role: node
-              relabel_configs:
-                - source_labels: [__address__]
-                  regex: '(.*):10250'
-                  replacement: '${1}:10250'
-                  target_label: __address__
-              metrics_path: /metrics/resource
+            - source_labels: [__meta_kubernetes_pod_label_app]
+              action: keep
+              regex: argocd-app|flask-minio|mongo|minio
 
-            - job_name: 'kube-state-metrics'
-              static_configs:
-                - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+            - source_labels: [__meta_kubernetes_pod_container_port_name]
+              action: keep
+              regex: metrics|http|web|prometheus
 
-            - job_name: 'kubernetes-pods-metrics'
-              kubernetes_sd_configs:
-                - role: pod
-              relabel_configs:
-                - source_labels: [__meta_kubernetes_namespace]
-                  target_label: namespace
-                - source_labels: [__meta_kubernetes_pod_name]
-                  target_label: pod
-                - source_labels: [__meta_kubernetes_pod_container_name]
-                  target_label: container
+            - source_labels: [__meta_kubernetes_pod_container_port]
+              action: keep
+              regex: 9102|5000|5002|27017|9000|9001
+
+            - source_labels: [__meta_kubernetes_pod_ip __meta_kubernetes_pod_container_port]
+              target_label: __address__
+              regex: (.+);(.+)
+              replacement: $1:$2
+
+        - name: kubelet
+          # Scrape kubelet resource metrics on nodes
+          scheme: https
+          tls_config:
+            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            insecure_skip_verify: false
+          bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+          kubernetes_sd_configs:
+            - role: node
+          relabel_configs:
+            - source_labels: [__address__]
+              regex: '(.*):10250'
+              replacement: '${1}:10250'
+              target_label: __address__
+          metrics_path: /metrics/resource
+
+        - name: kube-state-metrics
+          # Static scrape target for kube-state-metrics service
+          static_configs:
+            - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8080']
+
+        - name: kubernetes-pods-metrics
+          # Scrape all pod metrics with pod and container labels for better filtering
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_namespace]
+              target_label: namespace
+            - source_labels: [__meta_kubernetes_pod_name]
+              target_label: pod
+            - source_labels: [__meta_kubernetes_pod_container_name]
+              target_label: container
 
     logs:
       configs:
         - name: default
           positions:
-            filename: /tmp/positions.yaml
+            filename: /tmp/positions.yaml  # Track last read positions in logs for continuity
           clients:
-            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push
+            - url: http://loki.logging.svc.cluster.local:3100/loki/api/v1/push  # Loki push API endpoint
           scrape_configs:
             - job_name: kubernetes-pods
               kubernetes_sd_configs:
@@ -104,13 +113,14 @@ data:
               relabel_configs:
                 - source_labels: [__meta_kubernetes_pod_node_name]
                   action: keep
-                  regex: ${HOSTNAME}
+                  regex: ${HOSTNAME}  # Only scrape logs from this node's pods
                 - source_labels: [__meta_kubernetes_namespace]
                   action: drop
-                  regex: grafana-agent
+                  regex: grafana-agent  # Skip logs from the grafana-agent itself to avoid noise
                 - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
                   target_label: __path__
-                  replacement: /var/log/pods/*$1/*.log
+                  replacement: /var/log/pods/*$1/*.log  # Log file path pattern for container logs
+
 ---
 
 apiVersion: apps/v1
