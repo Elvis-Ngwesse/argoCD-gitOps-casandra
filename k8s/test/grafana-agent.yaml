@@ -59,10 +59,11 @@ data:
               - source_labels: [__meta_kubernetes_pod_label_app]
                 action: keep
                 regex: argocd-app|flask-minio
-              - source_labels: [__meta_kubernetes_pod_name, __meta_kubernetes_namespace, __meta_kubernetes_container_name]
+              - source_labels: [__meta_kubernetes_pod_name, __meta_kubernetes_namespace, __meta_kubernetes_pod_container_name]
                 separator: "_"
                 target_label: __path__
                 replacement: /var/log/containers/$0-*.log
+
 ---
 
 apiVersion: apps/v1
