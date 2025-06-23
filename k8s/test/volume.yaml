@@ -1,42 +1,6 @@
----
+
 # ---------------------------------------------------
-# 1. PersistentVolume + PVC (mongo-pv)
-# ---------------------------------------------------
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: mongo-pv
-  annotations:
-    argocd.argoproj.io/sync-wave: "3"
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: /mnt/data/mongo
-    type: DirectoryOrCreate
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: ""
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mongo-pvc
-  namespace: test
-  annotations:
-    argocd.argoproj.io/sync-wave: "3"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  volumeName: mongo-pv
-  storageClassName: ""
----
-# ---------------------------------------------------
-# 2. PersistentVolumeClaim (Grafana-pvc)
+# 1. PersistentVolumeClaim (Grafana-pvc)
 # ---------------------------------------------------
 ---
 apiVersion: v1
@@ -54,14 +18,14 @@ spec:
       storage: 5Gi
 ---
 # ---------------------------------------------------
-# 4. PersistentVolume + PVC (promtail-positions-pv)
+# 2. PersistentVolume + PVC (promtail-positions-pv)
 # ---------------------------------------------------
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: promtail-positions-pv
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: "2"
   labels:
     type: local
 spec:
@@ -82,7 +46,7 @@ metadata:
   name: promtail-positions-pvc
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -91,31 +55,9 @@ spec:
     requests:
       storage: 1Gi
   volumeName: promtail-positions-pv
-
 ---
 # ---------------------------------------------------
-# 6. PersistentVolume (mongo-pv-0)
-# ---------------------------------------------------
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: mongo-pv-0
-  annotations:
-    argocd.argoproj.io/sync-wave: "3"
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: ""
-  hostPath:
-    path: /mnt/data/mongo-0
-    type: DirectoryOrCreate
-
----
-# ---------------------------------------------------
-# 6. PersistentVolume (loki-storage-pvc)
+# 3. PersistentVolume (loki-storage-pvc)
 # ---------------------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
