@@ -105,7 +105,7 @@ argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 ## ✅ Create the App
 
 ```bash
-argocd app create python-mongodb-test \
+argocd app create test-app \
   --repo git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
   --path k8s/test \
   --dest-server https://kubernetes.default.svc \
@@ -118,7 +118,7 @@ argocd app create python-mongodb-test \
 ## ✅ Enable Prune, Self-Heal, and Sync Options
 
 ```bash
-argocd app set python-mongodb-test \
+argocd app set test-app \
   --sync-policy automated \
   --self-heal \
   --sync-option CreateNamespace=true
@@ -129,7 +129,7 @@ argocd app set python-mongodb-test \
 ## ✅ Trigger First Sync
 
 ```bash
-argocd app sync python-mongodb-test
+argocd app sync test-app
 ```
 
 ---
@@ -137,8 +137,8 @@ argocd app sync python-mongodb-test
 ## ✅ Delete App
 
 ```bash
-argocd app delete python-mongo-app --cascade
-argocd app sync python-mongo-app --prune
+argocd app delete test-app --cascade
+argocd app sync test-app --prune
 
 ```
 
@@ -271,6 +271,7 @@ Download test results from the MinIO web interface.
 
 
 minikube service prometheus -n logging --url
+    go to /targets
 minikube service loki -n logging --url
 minikube service flask-service -n test --url
 

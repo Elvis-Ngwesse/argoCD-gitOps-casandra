@@ -19,6 +19,24 @@ data:
       - job_name: 'grafana-agent'
         static_configs:
           - targets: ['grafana-agent.logging.svc.cluster.local:12345']
+      
+      - job_name: 'mongo-exporter'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace]
+            action: keep
+            regex: test
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: mongo
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "9216"
+          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port_number]
+            action: replace
+            separator: ":"
+            target_label: __address__
 
       - job_name: 'test-apps'
         kubernetes_sd_configs:
