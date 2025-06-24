@@ -25,42 +25,55 @@ data:
           - role: pod
 
         relabel_configs:
-          # Keep pods only in the 'test' namespace
-          - source_labels: [__meta_kubernetes_namespace]
-            action: keep
-            regex: test
+              # ✅ Only keep pods in the 'test' namespace
+              - source_labels: [__meta_kubernetes_namespace]
+                action: keep
+                regex: test
 
-          # Keep only the correct apps
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            action: keep
-            regex: argocd-app|flask-minio|minio|mongo
+              # ✅ Only allow specific labeled apps
+              - source_labels: [__meta_kubernetes_pod_label_app]
+                action: keep
+                regex: argocd-app|flask-minio|minio
 
-          # Respect scrape annotation
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-            action: keep
-            regex: "true"
+              # ✅ Only keep pods with prometheus.io/scrape: "true"
+              - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+                action: keep
+                regex: "true"
 
-          # Set the metrics path
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
-            action: replace
-            target_label: __metrics_path__
-            regex: (.+)
-            replacement: $1
+              # ✅ Use prometheus.io/path or fallback to /metrics
+              - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                action: replace
+                target_label: __metrics_path__
+                regex: (.+)
+                replacement: $1
+              - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                action: replace
+                target_label: __metrics_path__
+                regex: ^$
+                replacement: /metrics
 
-          # Set the port from the annotation
-          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
-            action: replace
-            target_label: __tmp_port__
-            regex: (.+)
-            replacement: $1
+              # ✅ Extract prometheus.io/port into __tmp_port__
+              - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+                action: replace
+                target_label: __tmp_port__
+                regex: (.+)
+                replacement: $1
 
-          # Combine Pod IP and port
-          - source_labels: [__meta_kubernetes_pod_ip, __tmp_port__]
-            action: replace
-            separator: ":"
-            target_label: __address__
-            regex: (.+);(.+)
-            replacement: $1:$2
+              # ✅ Combine pod IP with extracted port for __address__
+              - source_labels: [__meta_kubernetes_pod_ip, __tmp_port__]
+                action: replace
+                separator: ":"
+                target_label: __address__
+                regex: (.+);(.+)
+                replacement: $1:$2
+
+              # ✅ Add helpful labels for Grafana dashboards
+              - source_labels: [__meta_kubernetes_pod_name]
+                target_label: pod
+              - source_labels: [__meta_kubernetes_namespace]
+                target_label: namespace
+              - source_labels: [__meta_kubernetes_pod_label_app]
+                target_label: app
 ---
 # ---------------------------------------------------
 #  Prometheus Deployment + Service

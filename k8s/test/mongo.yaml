@@ -34,7 +34,7 @@ spec:
         app: mongo
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "27017"
+        prometheus.io/port: "9216"
         prometheus.io/path: "/metrics"
     spec:
       affinity:
@@ -52,6 +52,17 @@ spec:
           volumeMounts:
             - name: mongo-storage
               mountPath: /data/db
+        - name: mongo-exporter
+          image: percona/mongodb_exporter:0.40.0
+          ports:
+            - containerPort: 9216
+          env:
+            - name: MONGODB_URI
+              value: "mongodb://localhost:27017"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9216
   volumeClaimTemplates:
     - metadata:
         name: mongo-storage

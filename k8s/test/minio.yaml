@@ -21,7 +21,7 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9000"
-        prometheus.io/path: "/metrics"
+        prometheus.io/path: "/minio/v2/metrics/cluster"
     spec:
       containers:
         - name: minio
