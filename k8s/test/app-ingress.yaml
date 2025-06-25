@@ -8,15 +8,15 @@ metadata:
   name: argocd-app-ingress
   namespace: test
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /   # rewrites /flask to /
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   ingressClassName: nginx
   rules:
     - host: argocd-app.local
       http:
         paths:
-          - path: /flask
-            pathType: Prefix
+          - path: /flask(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: flask-service
