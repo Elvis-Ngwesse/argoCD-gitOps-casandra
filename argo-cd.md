@@ -211,8 +211,10 @@ minikube service flask-service -n test --url
 ---
 
 ## 🌐 Ingress with TLS
+add to dns entry host file: echo "$(minikube ip) argocd-app.local" | sudo tee -a /etc/hosts
+delete dns entry from host file: sudo sed -i '' '/argocd-app.local/d' /etc/hosts
 
-> Configure ingress rules and TLS certificates for secure external access.
+
 
 ---
 > End of Deployment Guide ✨
