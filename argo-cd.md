@@ -209,18 +209,6 @@ minikube service prometheus -n logging --url
 minikube service loki -n logging --url
 minikube service flask-service -n test --url
 ---
-
-## 🌐 Ingress with TLS
-add to dns entry host file: echo "$(minikube ip) argocd-app.local" | sudo tee -a /etc/hosts
-delete dns entry from host file: sudo sed -i '' '/argocd-app.local/d' /etc/hosts
-## Test ingress routing
-kubectl get ingress -A
-kubectl describe ingress -n test argocd-app-ingress
-kubectl describe ingress -n logging loki-ingress
-kubectl describe ingress -n logging grafana-ingress
-
-
----
 > End of Deployment Guide ✨
 
 
