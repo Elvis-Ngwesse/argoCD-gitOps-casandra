@@ -144,6 +144,9 @@ argocd app create prod-app \
 --self-heal \
 --sync-option CreateNamespace=true
 
+✅ 12. Sync your app
+argocd app sync prod-app
+
 ✅ Delete the cluster
 gcloud container clusters delete argocd-cluster \
 --zone=europe-west2-b
