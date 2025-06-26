@@ -1,0 +1,127 @@
+---
+# ---------------------------------------------------
+# ConfigMap prometheus
+# ---------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      - job_name: 'grafana-agent'
+        static_configs:
+          - targets: ['grafana-agent.logging.svc.cluster.local:12345']
+      
+      - job_name: 'mongo-exporter'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace]
+            action: keep
+            regex: test
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: mongo
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "9216"
+          - source_labels: [__meta_kubernetes_pod_ip, __meta_kubernetes_pod_container_port_number]
+            action: replace
+            separator: ":"
+            target_label: __address__
+
+      - job_name: 'test-apps'
+        kubernetes_sd_configs:
+          - role: pod
+
+        relabel_configs:
+            - source_labels: [__meta_kubernetes_namespace]
+              action: keep
+              regex: test
+            - source_labels: [__meta_kubernetes_pod_label_app]
+              action: keep
+              regex: argocd-app|flask-minio|minio|mongo
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+              action: keep
+              regex: "true"
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+              action: replace
+              target_label: __metrics_path__
+              regex: (.+)
+              replacement: $1
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+              action: replace
+              target_label: __tmp_port__
+              regex: (.+)
+              replacement: $1
+            - source_labels: [__meta_kubernetes_pod_ip, __tmp_port__]
+              action: replace
+              separator: ":"
+              target_label: __address__
+              regex: (.+);(.+)
+              replacement: $1:$2
+---
+# ---------------------------------------------------
+#  Prometheus Deployment + Service
+# ---------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.44.0
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus/"
+            - "--web.enable-lifecycle"
+          ports:
+            - containerPort: 9090
+              name: web
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: data
+              mountPath: /prometheus
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: logging
+spec:
+  type: NodePort
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30900

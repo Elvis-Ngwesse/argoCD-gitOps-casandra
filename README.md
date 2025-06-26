@@ -71,17 +71,84 @@ argoCD-gitOps-casandra/
 # 📦 Install minikube
 - brew install minikube
 
+# 📦 Install gcp
+- https://cloud.google.com/sdk/docs/install
+- gcloud components install kubectl 
+- gcloud auth login 
+- gcloud config set account aws.gcp.devops.elvis@gmail.com
+- gcloud projects create argocd-project-1 \
+  --name="Argo CD MongoDB Demo"
+- gcloud billing accounts list
+- gcloud beta billing projects link argocd-project-1 \
+  --billing-account=YOUR_BILLING_ACCOUNT_ID
+- gcloud config set project argocd-project-1
 
+✅ 1. Enable Required APIs
+gcloud services enable \
+container.googleapis.com \
+compute.googleapis.com \
+iam.googleapis.com
 
+✅ 2. Create a GKE Cluster
+gcloud container clusters create argocd-cluster \
+--zone=europe-west2-b \
+--num-nodes=2 \
+--machine-type=e2-medium \
+--enable-ip-alias \
+--enable-autoscaling \
+--min-nodes=1 \
+--max-nodes=4 \
+--enable-autoupgrade \
+--enable-autorepair \
+--metadata disable-legacy-endpoints=true \
+--workload-pool=argocd-project-1.svc.id.goog \
+--labels=environment=production,team=devops
 
+✅ 3. Get Cluster Credentials
+gcloud container clusters get-credentials argocd-cluster \
+--zone=europe-west2-b
 
-1. ✅ Do container log files exist on the node?
-   SSH into the Minikube node (or host node):
-sudo ls /var/log/containers | grep argocd-app
+✅ 4. Verify kubectl Access
+kubectl config current-context
+kubectl get nodes
 
-2. ✅ Are pod annotations in place?
-   Run:
+✅ 5. Install Argo CD in a Namespace
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-kubectl -n test get pod argocd-app-848c877486-x9b47 -o jsonpath='{.metadata.annotations}'
+✅ 6. Get Argo CD Initial Admin Password
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 
+✅ 7. Expose Argo CD via LoadBalancer or Ingress
+kubectl port-forward svc/argocd-server -n argocd 8080:443
 
+✅ 8. Login to Argo CD UI
+Open the external IP in your browser: (https://localhost:8080)
+Username: admin
+Password: (from step 7 command)
+
+✅ 9. Login to Argo CD CLI
+argocd login localhost:8080 --username admin --password $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+
+✅ 10. Add repo
+argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
+--ssh-private-key-path ~/.ssh/id_rsa
+
+✅ 11. Deploy Your App (Mongo + Flask)
+argocd app create prod-app \
+--repo git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
+--path k8s/prod \
+--dest-server https://kubernetes.default.svc \
+--dest-namespace prod \
+--sync-policy automated \
+--self-heal
+
+✅ Delete the cluster
+gcloud container clusters delete argocd-cluster \
+--zone=europe-west2-b
+
+🕒 Scale node pool to zero
+gcloud container clusters resize argocd-cluster \
+--zone=europe-west2-b \
+--node-pool=default-pool \
+--num-nodes=0
