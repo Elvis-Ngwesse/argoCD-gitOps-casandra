@@ -74,7 +74,7 @@ data:
       retention_deletes_enabled: true
       retention_period: 168h
 ---
-# Loki StatefulSet
+# Loki StatefulSet with dynamic PVC
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -125,3 +125,4 @@ spec:
         resources:
           requests:
             storage: 5Gi
+        storageClassName: standard  # 👈 enables dynamic provisioning on GKE

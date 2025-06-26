@@ -1,8 +1,7 @@
-
-# ---------------------------------------------------
-# 1. PersistentVolumeClaim (Grafana-pvc)
-# ---------------------------------------------------
 ---
+# ---------------------------------------------------
+# Grafana PersistentVolumeClaim for Dynamic Provisioning
+# ---------------------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -16,21 +15,4 @@ spec:
   resources:
     requests:
       storage: 5Gi
----
-# ---------------------------------------------------
-# 2. PersistentVolume (loki-storage-pvc)
-# ---------------------------------------------------
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: loki-storage
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "3"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-
+  storageClassName: standard  # Use GKE dynamic provisioning
