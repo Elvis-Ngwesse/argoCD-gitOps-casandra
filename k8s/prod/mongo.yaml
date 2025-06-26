@@ -1,5 +1,5 @@
 # ---------------------------------------------------
-# Mongo Headless Service + StatefulSet
+# Mongo Headless Service + StatefulSet (GKE-Compatible)
 # ---------------------------------------------------
 apiVersion: v1
 kind: Service
@@ -71,4 +71,4 @@ spec:
         resources:
           requests:
             storage: 1Gi
-        storageClassName: "standard"
+        storageClassName: "standard"  # GKE dynamic provisioning
