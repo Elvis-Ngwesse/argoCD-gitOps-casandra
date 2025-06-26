@@ -9,7 +9,7 @@ metadata:
   name: grafana-storage
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-wave: "6"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -18,46 +18,7 @@ spec:
       storage: 5Gi
 ---
 # ---------------------------------------------------
-# 2. PersistentVolume + PVC (promtail-positions-pv)
-# ---------------------------------------------------
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: promtail-positions-pv
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
-  labels:
-    type: local
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: ""
-  hostPath:
-    path: /mnt/data/promtail
-    type: DirectoryOrCreate
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: promtail-positions-pvc
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: ""
-  resources:
-    requests:
-      storage: 1Gi
-  volumeName: promtail-positions-pv
----
-# ---------------------------------------------------
-# 3. PersistentVolume (loki-storage-pvc)
+# 2. PersistentVolume (loki-storage-pvc)
 # ---------------------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -65,7 +26,7 @@ metadata:
   name: loki-storage
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -81,7 +42,7 @@ kind: PersistentVolume
 metadata:
   name: mongo-pv
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "4"
 spec:
   capacity:
     storage: 1Gi
