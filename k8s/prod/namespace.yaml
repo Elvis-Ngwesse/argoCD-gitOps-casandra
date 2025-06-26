@@ -11,11 +11,11 @@ metadata:
 ---
 
 # ---------------------------------------------------
-# 2. Namespace (test)
+# 2. Namespace (prod)
 # ---------------------------------------------------
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: test
+  name: prod
   annotations:
     argocd.argoproj.io/sync-wave: "0"

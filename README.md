@@ -141,7 +141,8 @@ argocd app create prod-app \
 --dest-server https://kubernetes.default.svc \
 --dest-namespace prod \
 --sync-policy automated \
---self-heal
+--self-heal \
+--sync-option CreateNamespace=true
 
 ✅ Delete the cluster
 gcloud container clusters delete argocd-cluster \

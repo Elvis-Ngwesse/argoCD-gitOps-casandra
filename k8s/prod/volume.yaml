@@ -9,7 +9,7 @@ metadata:
   name: grafana-storage
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -65,7 +65,7 @@ metadata:
   name: loki-storage
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   accessModes:
     - ReadWriteOnce
