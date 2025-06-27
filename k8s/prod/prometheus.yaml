@@ -68,6 +68,14 @@ data:
               target_label: __address__
               regex: (.+);(.+)
               replacement: $1:$2
+    
+      - job_name: 'argocd-app'
+        static_configs:
+          - targets: ['flask-service.prod.svc.cluster.local:8001']
+
+      - job_name: 'flask-minio'
+        static_configs:
+          - targets: ['flask-minio-service.prod.svc.cluster.local:8002']
 ---
 # ---------------------------------------------------
 #  Prometheus Deployment + Service
