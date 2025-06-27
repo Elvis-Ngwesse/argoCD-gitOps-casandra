@@ -169,7 +169,7 @@ gcloud compute machine-types list \
 kubectl get svc flask-service -n prod
 http://<external-ip>:5000
 kubectl get svc flask-minio-service -n prod
-http://<external-ip>:5000
+http://<external-ip>:5002
 
 
 

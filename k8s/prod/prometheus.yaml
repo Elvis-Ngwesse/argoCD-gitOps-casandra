@@ -130,7 +130,7 @@ metadata:
   name: prometheus
   namespace: logging
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: prometheus
   ports:

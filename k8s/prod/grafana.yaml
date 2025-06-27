@@ -91,12 +91,11 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: grafana
   ports:
     - port: 80
       targetPort: 3000
-      nodePort: 32000
       protocol: TCP
       name: http
