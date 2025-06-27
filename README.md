@@ -163,3 +163,7 @@ gcloud container clusters resize argocd-cluster \
 gcloud compute machine-types list \
 --filter="zone:europe-west2-b AND name~'e2'" \
 --format="table(name, guestCpus, memoryMb)"
+
+## ⌚ Access Apps
+kubectl get svc flask-service -n prod
+http://<external-ip>:<port>

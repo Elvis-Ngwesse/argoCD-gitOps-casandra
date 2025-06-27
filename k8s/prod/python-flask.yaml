@@ -9,7 +9,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: argocd-app
@@ -61,13 +61,12 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: argocd-app
   ports:
     - port: 5000
       targetPort: 5000
-      nodePort: 30090
 
 ---
 # ---------------------------------------------------
@@ -81,7 +80,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: flask-minio
@@ -145,10 +144,9 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: flask-minio
   ports:
     - port: 80
       targetPort: 5002
-      nodePort: 30091
