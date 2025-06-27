@@ -1,6 +1,6 @@
 ---
 # ---------------------------------------------------
-# Grafana PersistentVolumeClaim for Dynamic Provisioning
+# Grafana PersistentVolumeClaim
 # ---------------------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -15,4 +15,43 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: standard  # Use GKE dynamic provisioning
+  storageClassName: standard
+
+---
+# ---------------------------------------------------
+# Minio PersistentVolumeClaim
+# ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-data
+  namespace: prod
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: standard
+
+---
+# ---------------------------------------------------
+# Prometheus PersistentVolumeClaim
+# ---------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: standard
+

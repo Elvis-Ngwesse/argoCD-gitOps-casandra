@@ -63,12 +63,12 @@ spec:
             httpGet:
               path: /
               port: 9216
-  volumeClaimTemplates:
+  volumeClaimTemplates:  # Applicable only for StatefulSet
     - metadata:
         name: mongo-storage
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 1Gi
-        storageClassName: "standard"  # GKE dynamic provisioning
+            storage: 10Gi
+        storageClassName: "standard"

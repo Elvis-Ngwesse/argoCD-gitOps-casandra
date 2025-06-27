@@ -10,7 +10,7 @@ spec:
     targetRevision: main
     path: k8s
   destination:
-    server: https://<external-cluster-api-endpoint>
+    server: https://35.197.215.67
     namespace: prod
   syncPolicy:
     automated:

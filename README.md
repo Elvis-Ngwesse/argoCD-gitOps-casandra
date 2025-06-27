@@ -93,7 +93,7 @@ iam.googleapis.com
 gcloud container clusters create argocd-cluster \
 --zone=europe-west2-b \
 --num-nodes=2 \
---machine-type=e2-medium \
+--machine-type=e2-standard-4 \
 --enable-ip-alias \
 --enable-autoscaling \
 --min-nodes=1 \
@@ -108,33 +108,36 @@ gcloud container clusters create argocd-cluster \
 gcloud container clusters get-credentials argocd-cluster \
 --zone=europe-west2-b
 
-✅ 4. Verify kubectl Access
+✅ 4. Get API Server URL
+kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+
+✅ 5. Verify kubectl Access
 kubectl config current-context
 kubectl get nodes
 
-✅ 5. Install Argo CD in a Namespace
+✅ 6. Install Argo CD in a Namespace
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
-✅ 6. Get Argo CD Initial Admin Password
+✅ 7. Get Argo CD Initial Admin Password
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 
-✅ 7. Expose Argo CD via LoadBalancer or Ingress
+✅ 8. Expose Argo CD via LoadBalancer or Ingress
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 
-✅ 8. Login to Argo CD UI
+✅ 9. Login to Argo CD UI
 Open the external IP in your browser: (https://localhost:8080)
 Username: admin
 Password: (from step 7 command)
 
-✅ 9. Login to Argo CD CLI
+✅ 10. Login to Argo CD CLI
 argocd login localhost:8080 --username admin --password $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 
-✅ 10. Add repo
+✅ 11. Add repo
 argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 --ssh-private-key-path ~/.ssh/id_rsa
 
-✅ 11. Deploy Your App (Mongo + Flask)
+✅ 12. Deploy Your App (Mongo + Flask)
 argocd app create prod-app \
 --repo git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 --path k8s/prod \
@@ -144,7 +147,7 @@ argocd app create prod-app \
 --self-heal \
 --sync-option CreateNamespace=true
 
-✅ 12. Sync your app
+✅ 13. Sync your app
 argocd app sync prod-app
 
 ✅ Delete the cluster
@@ -156,3 +159,7 @@ gcloud container clusters resize argocd-cluster \
 --zone=europe-west2-b \
 --node-pool=default-pool \
 --num-nodes=0
+
+gcloud compute machine-types list \
+--filter="zone:europe-west2-b AND name~'e2'" \
+--format="table(name, guestCpus, memoryMb)"

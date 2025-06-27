@@ -23,6 +23,21 @@ docker save flask-minio-presigned | minikube image load -
 docker build -t dockerelvis/presigned-app:latest -f docker2/Dockerfile .
 docker login
 docker push dockerelvis/presigned-app:latest
+
+# Multi platform
+docker buildx create --use
+
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t dockerelvis/presigned-app:latest \
+  -f docker2/Dockerfile \
+  . \
+  --push
+
+ - The image is not stored locally. It's built remotely (via buildx) and pushed directly to Docker Hub.
+ - docker pull dockerelvis/presigned-app:latest to test locally
+ - docker run --rm -p 5004:5002 dockerelvis/argocd-app:latest
+
 ```
 
 ## 📄 Build & Push Argocd-App Image
@@ -30,6 +45,21 @@ docker push dockerelvis/presigned-app:latest
 docker build -t dockerelvis/argocd-app:latest -f docker/Dockerfile .
 docker login
 docker push dockerelvis/argocd-app:latest
+
+# Multi platform
+docker buildx create --use
+
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t dockerelvis/argocd-app:latest \
+  -f docker/Dockerfile \
+  . \
+  --push
+  
+ - The image is not stored locally. It's built remotely (via buildx) and pushed directly to Docker Hub.
+ - docker pull dockerelvis/argocd-app:latest to test locally
+ - docker run --rm -p 5000:5000 dockerelvis/argocd-app:latest
+
 ```
 ---
 ### 📄 Build and Run Flask-Customer Container
