@@ -158,7 +158,7 @@ gcloud container clusters delete argocd-cluster \
 gcloud container clusters resize argocd-cluster \
 --zone=europe-west2-b \
 --node-pool=default-pool \
---num-nodes=0
+--num-nodes=2
 
 gcloud compute machine-types list \
 --filter="zone:europe-west2-b AND name~'e2'" \
