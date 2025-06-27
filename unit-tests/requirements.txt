@@ -6,4 +6,4 @@ boto3
 pytest-html
 botocore
 prometheus_client
-
+requests

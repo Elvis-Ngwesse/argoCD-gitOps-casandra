@@ -9,6 +9,7 @@ import sys
 import logging
 from datetime import datetime
 from prometheus_client import start_http_server, Summary, generate_latest, CONTENT_TYPE_LATEST
+import requests
 
 # ---------------------------------------
 # ✅ Logging Setup (for Promtail to capture)
@@ -81,7 +82,9 @@ def health():
 
 @app.route("/metrics")
 def metrics():
-    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+    r = requests.get("http://localhost:8002/metrics")
+    return Response(r.content, status=r.status_code, mimetype=CONTENT_TYPE_LATEST)
+
 # ---------------------------------------
 # 🌍 Web Status Route
 # ---------------------------------------
