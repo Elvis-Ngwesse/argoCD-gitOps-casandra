@@ -58,7 +58,7 @@ docker buildx build \
   
  - The image is not stored locally. It's built remotely (via buildx) and pushed directly to Docker Hub.
  - docker pull dockerelvis/argocd-app:latest to test locally
- - docker run --rm -p 5000:5000 dockerelvis/argocd-app:latest
+ - docker run --rm -p 5002:5000 dockerelvis/argocd-app:latest
 
 ```
 ---

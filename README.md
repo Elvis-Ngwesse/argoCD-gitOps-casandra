@@ -167,3 +167,20 @@ gcloud compute machine-types list \
 ## ⌚ Access Apps
 kubectl get svc flask-service -n prod
 http://<external-ip>:<port>
+
+
+
+| **Option**                     | **What it means**                                | **Recommended Setting**       | **Why / Notes**                                       |
+|--------------------------------|--------------------------------------------------|-------------------------------|-------------------------------------------------------|
+| **Revision**                   | Git branch, tag, or commit to sync from          | `main` or specific commit SHA | Choose the version of manifests you want deployed     |
+| **PRUNE**                      | Delete resources removed from Git repo           | ✅ Enabled                     | Keeps cluster clean by removing deleted resources     |
+| **DRY RUN**                    | Simulate sync without applying changes           | ❌ Disabled                    | You want to actually apply changes, not just simulate |
+| **APPLY ONLY**                 | Only apply new/changed resources, no deletes     | ❌ Disabled                    | Allow pruning (deletes) to clean up removed resources |
+| **FORCE**                      | Force apply by deleting & recreating resources   | ❌ Disabled (unless needed)    | Use only if normal apply fails or resources get stuck |
+| **SKIP SCHEMA VALIDATION**     | Skip Kubernetes resource validation              | ❌ Disabled                    | Usually keep validation to avoid bad manifests        |
+| **AUTO-CREATE NAMESPACE**      | Create namespace if it doesn’t exist             | ✅ Enabled (if needed)         | Helpful if deploying to a new namespace               |
+| **PRUNE LAST**                 | Delete resources after applying changes          | ✅ Enabled                     | Safer deletion sequence                               |
+| **APPLY OUT OF SYNC ONLY**     | Only apply if resource differs from Git manifest | ✅ Enabled                     | Speeds up sync by skipping unchanged resources        |
+| **RESPECT IGNORE DIFFERENCES** | Honor ignoreDifferences settings                 | ✅ Enabled                     | Avoids unnecessary sync for ignored differences       |
+| **SERVER-SIDE APPLY**          | Use Kubernetes server-side apply                 | ✅ Enabled                     | More reliable, recommended method                     |
+| **PRUNE PROPAGATION POLICY**   | How deletes are propagated                       | `foreground` (default)        | Default safe setting for pruning resources            |
