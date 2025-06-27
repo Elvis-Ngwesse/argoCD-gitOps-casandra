@@ -167,7 +167,9 @@ gcloud compute machine-types list \
 
 ## ⌚ Access Apps
 kubectl get svc flask-service -n prod
-http://<external-ip>:<port>
+http://<external-ip>:5000
+kubectl get svc flask-minio-service -n prod
+http://<external-ip>:5000
 
 
 

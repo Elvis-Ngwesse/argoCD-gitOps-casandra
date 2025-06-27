@@ -148,5 +148,5 @@ spec:
   selector:
     app: flask-minio
   ports:
-    - port: 80
+    - port: 5002
       targetPort: 5002
