@@ -4,7 +4,7 @@ import os
 from urllib.parse import urlparse, urlunparse
 import logging
 import sys
-from prometheus_client import start_http_server, Summary
+from prometheus_client import start_http_server, Summary, generate_latest, CONTENT_TYPE_LATEST
 
 # ---------------------------------------
 # ✅ Logging Setup
@@ -43,6 +43,9 @@ except KeyError as e:
 def health():
     return jsonify({"status": "ok"}), 200
 
+@app.route("/metrics")
+def metrics():
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 # ---------------------------------------
 # 🪣 Connect to MinIO (S3-Compatible)
