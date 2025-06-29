@@ -101,14 +101,14 @@ spec:
       securityContext:
         fsGroup: 65534
         runAsUser: 65534
-      containers:
-        initContainers:
+      initContainers:
         - name: fix-permissions
           image: busybox
           command: [ "sh", "-c", "chown -R 65534:65534 /prometheus" ]
           volumeMounts:
             - name: data
               mountPath: /prometheus
+      containers:
         - name: prometheus
           image: prom/prometheus:v2.44.0
           args:
