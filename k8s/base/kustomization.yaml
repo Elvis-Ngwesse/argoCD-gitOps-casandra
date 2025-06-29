@@ -1,5 +1,15 @@
 
 ---
 resources:
+  - grafana.yaml
+  - grafana-agent.yaml
+  - jobs.yaml
   - loki.yaml
+  - minio.yaml
+  - mongo.yaml
+  - namespace.yaml
+  - prometheus.yaml
   - python-flask.yaml
+  - sa.yaml
+  - secret.yaml
+  - volume.yaml
