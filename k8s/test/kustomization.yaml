@@ -1,5 +1,17 @@
 resources:
   - ../base
+  - namespace.yaml
+  - sa.yaml
+  - secret.yaml
+  - volume.yaml
+  - mongo.yaml
+  - minio.yaml
+  - prometheus.yaml
+  - loki.yaml
+  - grafana.yaml
+  - grafana-agent.yaml
+  - jobs.yaml
+  - python-flask.yaml
 
 patches:
   - path: test-patch.yaml
