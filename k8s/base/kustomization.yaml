@@ -1,18 +1,15 @@
-apiVersion: kustomize.toolkit.fluxcd.io/v1
+apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-metadata:
-  name: base-kustomization
-spec:
-  resources:
-    - namespace.yaml
-    - sa.yaml
-    - secret.yaml
-    - volume.yaml
-    - mongo.yaml
-    - minio.yaml
-    - prometheus.yaml
-    - loki.yaml
-    - grafana.yaml
-    - grafana-agent.yaml
-    - jobs.yaml
-    - python-flask.yaml
+resources:
+  - namespace.yaml
+  - sa.yaml
+  - secret.yaml
+  - volume.yaml
+  - mongo.yaml
+  - minio.yaml
+  - prometheus.yaml
+  - loki.yaml
+  - grafana.yaml
+  - grafana-agent.yaml
+  - jobs.yaml
+  - python-flask.yaml
