@@ -135,17 +135,18 @@ argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 ---
 ## ✅ Create the App
 ```bash
-argocd app create test-app \
+argocd app create test-app1 \
   --repo https://github.com/Elvis-Ngwesse/argoCD-mongodb.git \
   --path k8s/overlays/test \
   --revision HEAD \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace test-stage \
-  --sync-policy automated \
-  --self-heal \
-  --auto-prune \
   --directory-recurse \
-  --sync-option CreateNamespace=true
+  --sync-policy automated \
+  --sync-option CreateNamespace=true \
+  --sync-option SelfHeal=true \
+  --sync-option Prune=true
+
 ```
 
 ---
