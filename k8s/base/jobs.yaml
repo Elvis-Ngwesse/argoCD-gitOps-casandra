@@ -5,8 +5,8 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: python-prod-job
-  namespace: prod
+  name: test-job
+  namespace: test-stage
   annotations:
     argocd.argoproj.io/sync-wave: "4"
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
@@ -47,7 +47,7 @@ spec:
             - name: MINIO_ENDPOINT
               value: "http://minio-service:9000"
             - name: MINIO_BUCKET
-              value: "prod-reports"
+              value: "test-stage-reports"
             - name: TIMESTAMP
               valueFrom:
                 fieldRef:

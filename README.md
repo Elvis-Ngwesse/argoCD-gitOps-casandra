@@ -102,7 +102,7 @@ gcloud container clusters create argocd-cluster \
 --enable-autorepair \
 --metadata disable-legacy-endpoints=true \
 --workload-pool=argocd-project-1.svc.id.goog \
---labels=environment=production,team=devops
+--labels=environment=test-stage,team=devops
 
 ✅ 3. Get Cluster Credentials
 gcloud container clusters get-credentials argocd-cluster \
@@ -142,7 +142,7 @@ argocd app create prod-app \
 --repo git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 --path k8s/base \
 --dest-server https://kubernetes.default.svc \
---dest-namespace prod \
+--dest-namespace test-stage \
 --sync-policy automated \
 --self-heal \
 --sync-option CreateNamespace=true
@@ -166,9 +166,9 @@ gcloud compute machine-types list \
 
 
 ## ⌚ Access Apps
-kubectl get svc flask-service -n prod
+kubectl get svc flask-service -n test-stage
 http://<external-ip>:5000
-kubectl get svc flask-minio-service -n prod
+kubectl get svc flask-minio-service -n test-stage
 http://<external-ip>:5002
 
 

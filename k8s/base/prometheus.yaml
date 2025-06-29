@@ -45,7 +45,7 @@ data:
         relabel_configs:
             - source_labels: [__meta_kubernetes_namespace]
               action: keep
-              regex: prod
+              regex: test-stage
             - source_labels: [__meta_kubernetes_pod_label_app]
               action: keep
               regex: customer-app|minio-url-app|minio|mongo

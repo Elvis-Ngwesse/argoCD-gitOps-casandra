@@ -6,7 +6,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
-  namespace: prod
+  namespace: test-stage
   annotations:
     argocd.argoproj.io/sync-wave: "3"
 spec:
@@ -59,7 +59,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: minio-service
-  namespace: prod
+  namespace: test-stage
 spec:
   selector:
     app: minio
