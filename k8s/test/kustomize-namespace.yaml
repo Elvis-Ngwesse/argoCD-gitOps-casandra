@@ -1,17 +1,13 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: test-kustomization
+  name: logging-namespace
   namespace: flux-system
 spec:
   interval: 1m0s
-  dependsOn:
-    - name: logging-namespace
-  prune: true
   sourceRef:
     kind: GitRepository
     name: my-git-repo
     namespace: flux-system
-  path: k8s/base
-  patchesStrategicMerge:
-    - test-patch.yaml
+  path: k8s/test
+  prune: true
