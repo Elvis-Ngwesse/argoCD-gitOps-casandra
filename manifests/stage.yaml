@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: customer-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Elvis-Ngwesse/argoCD-mongodb
+    targetRevision: main
+    path: k8s/stage
+  destination:
+    server: cluster-url
+    namespace: test-stage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
