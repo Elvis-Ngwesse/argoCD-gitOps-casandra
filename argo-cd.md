@@ -105,20 +105,16 @@ Refer to `README.md` for Minikube setup instructions.
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 kubectl apply -f https://github.com/fluxcd/flux2/releases/latest/download/install.yaml
+
 ```
 ---
 
-## 🌐 Port-forward Argo CD UI
-```bash
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-```
-
-Access: (https://localhost:8080)
-### 🔑 Get password
-
+## 🔑 Get password 🌐 Port-forward Argo CD UI
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
+Access: (https://localhost:8080)
 
 ### 🔑 Default Login
 ```bash
@@ -135,7 +131,7 @@ argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 ---
 ## ✅ Create the App
 ```bash
-argocd app create test-app1 \
+argocd app create test-app \
   --repo https://github.com/Elvis-Ngwesse/argoCD-mongodb.git \
   --path k8s/overlays/test \
   --revision HEAD \
@@ -152,7 +148,9 @@ argocd app create test-app1 \
 ---
 ## ✅ Trigger First Sync
 ```bash
-argocd app sync test-app
+argocd app get test-app1
+
+argocd app sync test-app1
 ```
 ---
 
@@ -306,3 +304,5 @@ argoCD-mongodb/
 debug
 
 kubectl apply --dry-run=client -k k8s/overlays/test
+
+kubectl delete namespace argocd
