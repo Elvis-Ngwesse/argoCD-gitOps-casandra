@@ -140,20 +140,17 @@ argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 ## ✅ Create the App
 ```bash
 argocd app create test-app \
-  --repo git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
+  --repo https://github.com/Elvis-Ngwesse/argoCD-mongodb.git \
   --path k8s/test \
+  --revision HEAD \
   --dest-server https://kubernetes.default.svc \
-  --dest-namespace test \
-  --sync-policy automated
-```
-
----
-## ✅ Enable Prune, Self-Heal, and Sync Options
-```bash
-argocd app set test-app \
+  --dest-namespace test-env \
   --sync-policy automated \
   --self-heal \
+  --auto-prune \
+  --directory-recurse \
   --sync-option CreateNamespace=true
+
 ```
 
 ---
