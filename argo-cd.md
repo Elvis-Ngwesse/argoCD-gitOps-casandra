@@ -135,7 +135,7 @@ argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 ---
 ## ✅ Create the App
 ```bash
-argocd app create test-application \
+argocd app create test-app \
   --repo https://github.com/Elvis-Ngwesse/argoCD-mongodb.git \
   --path k8s/test \
   --revision HEAD \

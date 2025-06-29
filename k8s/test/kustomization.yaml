@@ -3,7 +3,12 @@ kind: Kustomization
 metadata:
   name: test-kustomization
 spec:
-  resources:
-    - ../base/kustomization.yaml
+  interval: 1m0s
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: your-git-repo-name
+    namespace: flux-system
+  path: k8s/base/kustomization.yaml
   patches:
     - path: test-patch.yaml
