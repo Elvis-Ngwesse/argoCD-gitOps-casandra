@@ -16,6 +16,6 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: prod
+  name: python-apps
   annotations:
     argocd.argoproj.io/sync-wave: "0"

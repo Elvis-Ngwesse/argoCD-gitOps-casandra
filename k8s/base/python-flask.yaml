@@ -5,7 +5,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: customer-app
-  namespace: prod
+  namespace: python-apps
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
@@ -57,7 +57,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: customer-api-service
-  namespace: prod
+  namespace: python-apps
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
@@ -76,7 +76,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: report-url-generator
-  namespace: prod
+  namespace: python-apps
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
@@ -104,7 +104,7 @@ spec:
             - name: MINIO_ENDPOINT
               value: "http://minio-service:9000"
             - name: MINIO_BUCKET
-              value: "prod-reports"
+              value: "python-apps-reports"
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -140,7 +140,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: report-url-service
-  namespace: prod
+  namespace: python-apps
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:

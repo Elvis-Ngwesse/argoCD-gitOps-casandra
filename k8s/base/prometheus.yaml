@@ -26,7 +26,7 @@ data:
         relabel_configs:
           - source_labels: [__meta_kubernetes_namespace]
             action: keep
-            regex: prod
+            regex: python-apps
           - source_labels: [__meta_kubernetes_pod_label_app]
             action: keep
             regex: mongo
@@ -38,14 +38,14 @@ data:
             separator: ":"
             target_label: __address__
 
-      - job_name: 'prod-apps'
+      - job_name: 'python-apps'
         kubernetes_sd_configs:
           - role: pod
 
         relabel_configs:
             - source_labels: [__meta_kubernetes_namespace]
               action: keep
-              regex: prod
+              regex: python-apps
             - source_labels: [__meta_kubernetes_pod_label_app]
               action: keep
               regex: customer-app|flask-minio|minio|mongo
@@ -71,11 +71,11 @@ data:
     
       - job_name: 'customer-app'
         static_configs:
-          - targets: ['flask-service.prod.svc.cluster.local:5000']
+          - targets: ['flask-service.python-apps.svc.cluster.local:5000']
 
       - job_name: 'flask-minio'
         static_configs:
-          - targets: ['flask-minio-service.prod.svc.cluster.local:5002']
+          - targets: ['flask-minio-service.python-apps.svc.cluster.local:5002']
 ---
 # ---------------------------------------------------
 #  Prometheus Deployment + Service
