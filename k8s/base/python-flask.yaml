@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: argocd-app
-          image: dockerelvis/argocd-app:latest
+          image: dockerelvis/argocd-app:ceb811b-20250627125735
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
@@ -96,7 +96,7 @@ spec:
     spec:
       containers:
         - name: flask-minio
-          image: dockerelvis/presigned-app:latest
+          image: dockerelvis/presigned-app:ceb811b-20250627125903
           imagePullPolicy: Always
           ports:
             - containerPort: 5002

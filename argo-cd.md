@@ -27,13 +27,16 @@ docker push dockerelvis/presigned-app:latest
 # Multi platform
 docker buildx create --use
 
+minio_version=$(git rev-parse --short HEAD)-$(date +%Y%m%d%H%M%S)
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t dockerelvis/presigned-app:latest \
+  -t dockerelvis/argocd-app:latest \
+  -t dockerelvis/argocd-app:$minio_version \
   -f docker2/Dockerfile \
   . \
   --push
 
+ - echo $minio_version
  - The image is not stored locally. It's built remotely (via buildx) and pushed directly to Docker Hub.
  - docker pull dockerelvis/presigned-app:latest to test locally
  - docker run --rm -p 5004:5002 dockerelvis/argocd-app:latest
@@ -49,13 +52,16 @@ docker push dockerelvis/argocd-app:latest
 # Multi platform
 docker buildx create --use
 
+argocd_version=$(git rev-parse --short HEAD)-$(date +%Y%m%d%H%M%S)
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
   -t dockerelvis/argocd-app:latest \
+  -t dockerelvis/argocd-app:$argocd_version \
   -f docker/Dockerfile \
   . \
   --push
-  
+
+ - echo $argocd_version
  - The image is not stored locally. It's built remotely (via buildx) and pushed directly to Docker Hub.
  - docker pull dockerelvis/argocd-app:latest to test locally
  - docker run --rm -p 5002:5000 dockerelvis/argocd-app:latest
