@@ -137,7 +137,7 @@ argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 ```bash
 argocd app create test-app \
   --repo https://github.com/Elvis-Ngwesse/argoCD-mongodb.git \
-  --path k8s/test \
+  --path k8s/overlays/test \
   --revision HEAD \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace test-stage \
@@ -299,3 +299,9 @@ argoCD-mongodb/
 └── test/
         ├── gitrepository.yaml
         └── kustomization.yaml
+
+
+
+debug
+
+kubectl apply --dry-run=client -k k8s/overlays/test

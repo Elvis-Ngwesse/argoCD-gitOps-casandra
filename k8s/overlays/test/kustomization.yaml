@@ -3,5 +3,6 @@ kind: Kustomization
 
 resources:
   - ../../base
-patchesStrategicMerge:
-  - test-patch.yaml
+
+patches:
+  - path: test-patch.yaml
