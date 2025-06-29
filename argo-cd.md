@@ -280,3 +280,22 @@ Click on: Add visualization
 
 kubectl apply -f clusters/test/kustomization.yaml
 kubectl apply -f clusters/test/gitrepo.yaml
+
+
+✅ Folder Structure
+
+argoCD-mongodb/
+├── k8s/
+│   ├── base/
+│   │   ├── kustomization.yaml
+│   │   ├── namespace.yaml
+│   │   ├── mongo.yaml
+│   │   ├── prometheus.yaml
+│   │   └── ... (other shared resources)
+│   └── test/
+│       ├── kustomization.yaml
+│       └── test-patch.yaml
+└── clusters/
+└── test/
+        ├── gitrepository.yaml
+        └── kustomization.yaml
