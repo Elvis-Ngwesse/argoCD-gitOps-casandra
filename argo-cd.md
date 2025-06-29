@@ -156,14 +156,14 @@ argocd app create test-application \
 ---
 ## ✅ Trigger First Sync
 ```bash
-argocd app sync python-apps
+argocd app sync test-application
 ```
 ---
 
 ## ✅ Delete App
 ```bash
-argocd app delete python-apps --cascade
-argocd app sync python-apps --prune
+argocd app delete test-application --cascade
+argocd app sync test-application --prune
 ```
 
 ---

@@ -19,4 +19,4 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true  # Ensures the 'test' namespace is created if missing
+      - CreateNamespace=true
