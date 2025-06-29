@@ -1,0 +1,9 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: test-kustomization
+spec:
+  resources:
+    - ../base
+  patches:
+    - path: test-patch.yaml

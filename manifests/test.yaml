@@ -1,20 +1,22 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: argocd-app
+  name: test-application
   namespace: argocd  # Namespace where Argo CD is installed
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: default
   source:
     repoURL: https://github.com/Elvis-Ngwesse/argoCD-mongodb
     targetRevision: main
-    path: k8s
+    path: k8s/test
   destination:
     server: https://kubernetes.default.svc
-    namespace: test  # Namespace for deploying your app
+    namespace: python-apps  # Namespace for deploying your app
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true  # Ensures the 'test' namespace is created if missing
+      - CreateNamespace=true

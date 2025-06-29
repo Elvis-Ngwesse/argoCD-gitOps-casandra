@@ -8,10 +8,10 @@ spec:
   source:
     repoURL: https://github.com/Elvis-Ngwesse/argoCD-mongodb
     targetRevision: main
-    path: k8s
+    path: k8s/prod
   destination:
     server: https://35.197.215.67
-    namespace: prod
+    namespace: prod-env
   syncPolicy:
     automated:
       prune: true
