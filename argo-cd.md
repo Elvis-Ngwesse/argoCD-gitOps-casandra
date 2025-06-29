@@ -104,7 +104,7 @@ Refer to `README.md` for Minikube setup instructions.
 ```bash
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
+kubectl apply -f https://github.com/fluxcd/flux2/releases/latest/download/install.yaml
 ```
 ---
 
@@ -276,3 +276,7 @@ Click on: Add visualization
 🟩 10. Name it: Process Memory Dashboard
 ✅ Done!
 ---
+
+
+
+kubectl apply -f k8s/base/gitrepository.yaml

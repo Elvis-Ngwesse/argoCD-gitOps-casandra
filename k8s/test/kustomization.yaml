@@ -2,14 +2,14 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: test-kustomization
-  namespace: flux-system         # add namespace if applicable
+  namespace: flux-system
 spec:
   interval: 1m0s
   prune: true
   sourceRef:
     kind: GitRepository
-    name: your-git-repo-name     # replace with your actual GitRepository resource name
+    name: my-git-repo
     namespace: flux-system
-  path: k8s/base                 # directory containing kustomization.yaml, NOT the file itself
+  path: k8s/base
   patchesStrategicMerge:
-    - test-patch.yaml            # patch file relative to k8s/base
+    - test-patch.yaml
