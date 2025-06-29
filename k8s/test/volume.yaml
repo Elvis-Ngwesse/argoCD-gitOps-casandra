@@ -1,92 +1,57 @@
-
-# ---------------------------------------------------
-# 1. PersistentVolumeClaim (Grafana-pvc)
-# ---------------------------------------------------
 ---
+# ---------------------------------------------------
+# Grafana PersistentVolumeClaim
+# ---------------------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: grafana-storage
   namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 5Gi
----
-# ---------------------------------------------------
-# 2. PersistentVolume + PVC (promtail-positions-pv)
-# ---------------------------------------------------
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: promtail-positions-pv
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
-  labels:
-    type: local
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: ""
-  hostPath:
-    path: /mnt/data/promtail
-    type: DirectoryOrCreate
+  storageClassName: standard
 
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: promtail-positions-pvc
-  namespace: logging
-  annotations:
-    argocd.argoproj.io/sync-wave: "2"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: ""
-  resources:
-    requests:
-      storage: 1Gi
-  volumeName: promtail-positions-pv
----
 # ---------------------------------------------------
-# 3. PersistentVolume (loki-storage-pvc)
+# Minio PersistentVolumeClaim
 # ---------------------------------------------------
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: loki-storage
-  namespace: logging
+  name: minio-data
+  namespace: test
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: 2Gi
+  storageClassName: standard
+
 ---
 # ---------------------------------------------------
-# 3. PersistentVolume (Mongo)
+# Prometheus PersistentVolumeClaim
 # ---------------------------------------------------
 apiVersion: v1
-kind: PersistentVolume
+kind: PersistentVolumeClaim
 metadata:
-  name: mongo-pv
+  name: prometheus-data
+  namespace: logging
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "4"
 spec:
-  capacity:
-    storage: 1Gi
   accessModes:
     - ReadWriteOnce
-  storageClassName: ""
-  hostPath:
-    path: /mnt/data/mongo
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: standard
+

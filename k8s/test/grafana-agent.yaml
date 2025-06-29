@@ -19,19 +19,19 @@ data:
         - name: kubernetes    
           scrape_configs:   
 
-            - job_name: 'test-and-logging-apps'
+            - job_name: 'prod-and-logging-apps'
               kubernetes_sd_configs:
                 - role: pod
               relabel_configs:
                 - source_labels: [__meta_kubernetes_namespace]
                   action: keep
-                  regex: test|logging
+                  regex: prod|logging
             
                 - source_labels: [__meta_kubernetes_pod_label_app]
                   action: keep
-                  regex: flask-minio|argocd-app|minio
+                  regex: minio-url-app|customer-app|minio
             
-                # Scrape metrics ports (argocd-app = 8001, flask-minio = 8002)
+                # Scrape metrics ports (customer-app = 8001, minio-url-app = 8002)
                 - source_labels: [__meta_kubernetes_pod_container_port]
                   action: keep
                   regex: 8001|8002|9000|9001
@@ -55,10 +55,10 @@ data:
               relabel_configs:
               - source_labels: [__meta_kubernetes_namespace]
                 action: keep
-                regex: test|logging
+                regex: prod|logging
               - source_labels: [__meta_kubernetes_pod_label_app]
                 action: keep
-                regex: argocd-app|flask-minio|mongo|minio
+                regex: customer-app|minio-url-app|mongo|minio
               - source_labels: [__meta_kubernetes_pod_name, __meta_kubernetes_namespace, __meta_kubernetes_pod_container_name]
                 separator: "_"
                 target_label: __path__

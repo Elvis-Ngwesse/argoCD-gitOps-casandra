@@ -1,11 +1,11 @@
 # ---------------------------------------------------
-# Mongo Headless Service + StatefulSet
+# Mongo Headless Service + StatefulSet (GKE-Compatible)
 # ---------------------------------------------------
 apiVersion: v1
 kind: Service
 metadata:
   name: mongo-service
-  namespace: test
+  namespace: prod
 spec:
   clusterIP: None
   selector:
@@ -19,7 +19,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mongo
-  namespace: test
+  namespace: prod
   annotations:
     argocd.argoproj.io/sync-wave: "3"
 spec:
@@ -63,12 +63,12 @@ spec:
             httpGet:
               path: /
               port: 9216
-  volumeClaimTemplates:
+  volumeClaimTemplates:  # Applicable only for StatefulSet
     - metadata:
         name: mongo-storage
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 1Gi
-        storageClassName: ""
+            storage: 10Gi
+        storageClassName: "standard"

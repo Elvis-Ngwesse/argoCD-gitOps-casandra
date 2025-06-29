@@ -27,38 +27,40 @@ docker push dockerelvis/presigned-app:latest
 # Multi platform
 docker buildx create --use
 
+COMMIT_SHA=$(git rev-parse --short HEAD)
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t dockerelvis/presigned-app:latest \
-  -f docker2/Dockerfile \
-  . \
-  --push
+  -t dockerelvis/minio-url-app:latest \
+  -t dockerelvis/minio-url-app:$COMMIT_SHA \
+  -f docker2/Dockerfile . --push
+echo $COMMIT_SHA
 
  - The image is not stored locally. It's built remotely (via buildx) and pushed directly to Docker Hub.
  - docker pull dockerelvis/presigned-app:latest to test locally
- - docker run --rm -p 5004:5002 dockerelvis/argocd-app:latest
+ - docker run --rm -p 5004:5002 dockerelvis/customer-app:latest
 
 ```
 
 ## 📄 Build & Push Argocd-App Image
 ```bash
-docker build -t dockerelvis/argocd-app:latest -f docker/Dockerfile .
+docker build -t dockerelvis/customer-app:latest -f docker/Dockerfile .
 docker login
-docker push dockerelvis/argocd-app:latest
+docker push dockerelvis/customer-app:latest
 
 # Multi platform
 docker buildx create --use
-
+COMMIT_SHA=$(git rev-parse --short HEAD)
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t dockerelvis/argocd-app:latest \
-  -f docker/Dockerfile \
-  . \
-  --push
+  -t dockerelvis/customer-app:latest \
+  -t dockerelvis/customer-app:$COMMIT_SHA \
+  -f docker/Dockerfile . --push
+echo $COMMIT_SHA
+
   
  - The image is not stored locally. It's built remotely (via buildx) and pushed directly to Docker Hub.
- - docker pull dockerelvis/argocd-app:latest to test locally
- - docker run --rm -p 5002:5000 dockerelvis/argocd-app:latest
+ - docker pull dockerelvis/customer-app:latest to test locally
+ - docker run --rm -p 5002:5000 dockerelvis/customer-app:latest
 
 ```
 ---
@@ -133,20 +135,16 @@ argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 ---
 ## ✅ Create the App
 ```bash
-argocd app create test-app \
-  --repo git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
+argocd app create test-application \
+  --repo https://github.com/Elvis-Ngwesse/argoCD-mongodb.git \
   --path k8s/test \
+  --revision HEAD \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace test \
-  --sync-policy automated
-```
-
----
-## ✅ Enable Prune, Self-Heal, and Sync Options
-```bash
-argocd app set test-app \
   --sync-policy automated \
   --self-heal \
+  --auto-prune \
+  --directory-recurse \
   --sync-option CreateNamespace=true
 ```
 
@@ -177,7 +175,7 @@ kubectl get svc argocd-server -n argocd
 ---
 ## ✅ Access App via Minikube
 
-* Use `minikube service argocd-app` to access the deployed app.
+* Use `minikube service customer-app` to access the deployed app.
 * Make a code change and push to GitHub.
 * Argo CD will automatically sync and redeploy.
 ---

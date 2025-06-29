@@ -95,8 +95,8 @@ spec:
   selector:
     app: grafana
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 3000
-      nodePort: 32000
+      nodePort: 32080
       protocol: TCP
-      name: http

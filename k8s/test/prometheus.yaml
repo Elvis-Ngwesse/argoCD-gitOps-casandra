@@ -45,10 +45,10 @@ data:
         relabel_configs:
             - source_labels: [__meta_kubernetes_namespace]
               action: keep
-              regex: test
+              regex: prod
             - source_labels: [__meta_kubernetes_pod_label_app]
               action: keep
-              regex: argocd-app|flask-minio|minio|mongo
+              regex: customer-app|minio-url-app|minio|mongo
             - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
               action: keep
               regex: "true"
@@ -68,6 +68,14 @@ data:
               target_label: __address__
               regex: (.+);(.+)
               replacement: $1:$2
+    
+      - job_name: 'customer-app'
+        static_configs:
+          - targets: ['flask-service.test.svc.cluster.local:5000']
+
+      - job_name: 'minio-url-app'
+        static_configs:
+          - targets: ['minio-url-app-service.test.svc.cluster.local:5002']
 ---
 # ---------------------------------------------------
 #  Prometheus Deployment + Service
@@ -90,6 +98,9 @@ spec:
         app: prometheus
     spec:
       serviceAccountName: prometheus
+      securityContext:
+        fsGroup: 65534
+        runAsUser: 65534
       containers:
         - name: prometheus
           image: prom/prometheus:v2.44.0
@@ -110,7 +121,8 @@ spec:
           configMap:
             name: prometheus-config
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: prometheus-data
 ---
 apiVersion: v1
 kind: Service
@@ -122,6 +134,7 @@ spec:
   selector:
     app: prometheus
   ports:
-    - port: 9090
+    - name: http
+      port: 9090
       targetPort: 9090
       nodePort: 30900

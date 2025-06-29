@@ -6,7 +6,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
-  namespace: test
+  namespace: prod
   annotations:
     argocd.argoproj.io/sync-wave: "3"
 spec:
@@ -52,13 +52,14 @@ spec:
               mountPath: /data
       volumes:
         - name: minio-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: minio-data
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: minio-service
-  namespace: test
+  namespace: prod
 spec:
   selector:
     app: minio

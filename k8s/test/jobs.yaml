@@ -1,12 +1,12 @@
 ---
 # ---------------------------------------------------
-# 1. Batch Job (python-test-job)
+# 1. Test Batch Job
 # ---------------------------------------------------
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: python-test-job
-  namespace: test
+  name: python-prod-job
+  namespace: prod
   annotations:
     argocd.argoproj.io/sync-wave: "4"
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
@@ -47,7 +47,7 @@ spec:
             - name: MINIO_ENDPOINT
               value: "http://minio-service:9000"
             - name: MINIO_BUCKET
-              value: "test-reports"
+              value: "prod-reports"
             - name: TIMESTAMP
               valueFrom:
                 fieldRef:
@@ -66,29 +66,3 @@ spec:
           volumeMounts:
             - name: app-code
               mountPath: /app
-
----
-# ---------------------------------------------------
-# 2. Batch Job (delete-mongo-statefulset)
-# ---------------------------------------------------
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: delete-mongo-statefulset
-  namespace: test
-  annotations:
-    argocd.argoproj.io/sync-wave: "4"
-spec:
-  backoffLimit: 1
-  template:
-    spec:
-      serviceAccountName: argocd-manager
-      restartPolicy: Never
-      containers:
-        - name: kubectl
-          image: bitnami/kubectl:latest
-          command:
-            - /bin/sh
-            - -c
-            - |
-              kubectl delete statefulset mongo --namespace=test --cascade=orphan || true
