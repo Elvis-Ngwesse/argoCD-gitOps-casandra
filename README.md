@@ -140,7 +140,7 @@ argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 ✅ 12. Deploy Your App (Mongo + Flask)
 argocd app create prod-app \
 --repo git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
---path k8s/prod \
+--path k8s/base \
 --dest-server https://kubernetes.default.svc \
 --dest-namespace prod \
 --sync-policy automated \

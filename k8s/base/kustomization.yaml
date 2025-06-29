@@ -1,0 +1,14 @@
+
+---
+resources:
+  - grafana.yaml
+  - jobs.yaml
+  - loki.yaml
+  - minio.yaml
+  - mongo.yaml
+  - namespace.yaml
+  - prometheus.yaml
+  - python-flask.yaml
+  - secret.yaml
+  - sa
+  - volume.yaml

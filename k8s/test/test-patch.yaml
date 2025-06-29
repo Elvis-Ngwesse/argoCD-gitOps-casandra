@@ -1,0 +1,293 @@
+# ---------------------------------------------------
+# Grafana Patch
+# ---------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+namespace: test-env
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+namespace: test-env
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+namespace: test-env
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+namespace: test-env
+spec:
+  type: NodePort
+---
+
+# ---------------------------------------------------
+# Jobs Patch
+# ---------------------------------------------------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: python-prod-job
+  namespace: test-env
+---
+
+# ---------------------------------------------------
+# Loki Patch
+# ---------------------------------------------------
+# Patch namespace for Loki Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: test-env
+spec:
+  type: NodePort
+---
+# Patch namespace for Loki ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: test-env
+---
+# Patch namespace for Loki StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  namespace: test-env
+---
+
+# ---------------------------------------------------
+# Minio Patch
+# ---------------------------------------------------
+# Patch namespace and optional Service type
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: test-env
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+  namespace: test-env
+spec:
+  type: NodePort
+---
+
+# ---------------------------------------------------
+# Mongo Patch
+# ---------------------------------------------------
+# Patch Mongo Headless Service to test-env
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service
+  namespace: test-env
+---
+# Patch Mongo StatefulSet to test-env
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: test-env
+---
+
+# ---------------------------------------------------
+# Namespace Patch
+# ---------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-env
+---
+
+# ---------------------------------------------------
+# Prometheus Patch
+# ---------------------------------------------------
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: test-env
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: test-env
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: test-env
+spec:
+  type: NodePort
+---
+
+# ---------------------------------------------------
+# Flask App Patch
+# ---------------------------------------------------
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-service
+  namespace: test-env
+spec:
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-minio-service
+  namespace: test-env
+spec:
+  type: NodePort
+---
+# customer-app: update image, remove probes, set replicas
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-app
+  namespace: test-env
+spec:
+  replicas: 1  # 👈 set replica count
+  template:
+    spec:
+      containers:
+        - name: customer-app
+          image: dockerelvis/customer-app:latest
+
+---
+# flask-minio: update image, remove probes, set replicas
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-minio
+  namespace: test-env
+spec:
+  replicas: 1  # 👈 set replica count
+  template:
+    spec:
+      containers:
+        - name: report-url-api
+          image: dockerelvis/report-url-generator:latest
+---
+
+# ---------------------------------------------------
+# Secret Patch
+# ---------------------------------------------------
+# Patch MinIO creds to test-env
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-creds
+  namespace: test-env
+---
+# Patch Grafana admin credentials to test-env
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-admin-credentials
+  namespace: test-env
+---
+
+# ---------------------------------------------------
+# SA Patch
+# ---------------------------------------------------
+# 1. Patch argocd-manager namespace
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-manager
+  namespace: test-env
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: statefulset-manager
+  namespace: test-env
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: statefulset-manager-binding
+  namespace: test-env
+subjects:
+  - kind: ServiceAccount
+    name: argocd-manager
+    namespace: test-env
+
+# 2. Patch grafana-agent to test-env
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grafana-agent
+  namespace: test-env
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: grafana-agent-logs-metrics
+subjects:
+  - kind: ServiceAccount
+    name: grafana-agent
+    namespace: test-env
+
+# 3. Patch prometheus SA to test-env
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: test-env
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus-pod-reader-binding
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: test-env
+---
+
+# ---------------------------------------------------
+# Volume Patch
+# ---------------------------------------------------
+# Grafana PVC in test-env
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-storage
+  namespace: test-env
+---
+# MinIO PVC in test-env
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-data
+  namespace: test-env
+---
+# Prometheus PVC in test-env
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: test-env
+

@@ -48,7 +48,7 @@ data:
               regex: prod
             - source_labels: [__meta_kubernetes_pod_label_app]
               action: keep
-              regex: argocd-app|flask-minio|minio|mongo
+              regex: customer-app|flask-minio|minio|mongo
             - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
               action: keep
               regex: "true"
@@ -69,7 +69,7 @@ data:
               regex: (.+);(.+)
               replacement: $1:$2
     
-      - job_name: 'argocd-app'
+      - job_name: 'customer-app'
         static_configs:
           - targets: ['flask-service.prod.svc.cluster.local:5000']
 

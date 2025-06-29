@@ -66,29 +66,3 @@ spec:
           volumeMounts:
             - name: app-code
               mountPath: /app
-
----
-# ---------------------------------------------------
-# 2. Batch Job (delete-mongo-statefulset)
-# ---------------------------------------------------
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: delete-mongo-statefulset
-  namespace: prod
-  annotations:
-    argocd.argoproj.io/sync-wave: "4"
-spec:
-  backoffLimit: 1
-  template:
-    spec:
-      serviceAccountName: argocd-manager
-      restartPolicy: Never
-      containers:
-        - name: kubectl
-          image: bitnami/kubectl:latest
-          command:
-            - /bin/sh
-            - -c
-            - |
-              kubectl delete statefulset mongo --namespace=prod --cascade=orphan || true
