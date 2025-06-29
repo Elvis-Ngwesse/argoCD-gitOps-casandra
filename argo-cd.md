@@ -278,5 +278,5 @@ Click on: Add visualization
 ---
 
 
-
-kubectl apply -f k8s/base/gitrepository.yaml
+kubectl apply -f clusters/test/kustomization.yaml
+kubectl apply -f clusters/test/gitrepo.yaml
