@@ -12,6 +12,5 @@ spec:
     kind: GitRepository
     name: my-git-repo
     namespace: flux-system
-  path: k8s/base
-  patchesStrategicMerge:
-    - test-patch.yaml
+  path: ./k8s/base
+
