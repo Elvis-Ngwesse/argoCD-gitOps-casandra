@@ -139,7 +139,7 @@ argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 ---
 ## ✅ Create the App
 ```bash
-argocd app create test-app \
+argocd app create test-application \
   --repo https://github.com/Elvis-Ngwesse/argoCD-mongodb.git \
   --path k8s/test \
   --revision HEAD \
@@ -156,14 +156,14 @@ argocd app create test-app \
 ---
 ## ✅ Trigger First Sync
 ```bash
-argocd app sync test-app
+argocd app sync python-apps
 ```
 ---
 
 ## ✅ Delete App
 ```bash
-argocd app delete test-app --cascade
-argocd app sync test-app --prune
+argocd app delete python-apps --cascade
+argocd app sync python-apps --prune
 ```
 
 ---
