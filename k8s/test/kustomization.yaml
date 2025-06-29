@@ -4,6 +4,6 @@ metadata:
   name: test-kustomization
 spec:
   resources:
-    - ../base
+    - ../base/kustomization.yaml
   patches:
     - path: test-patch.yaml
