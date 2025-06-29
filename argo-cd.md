@@ -104,7 +104,6 @@ Refer to `README.md` for Minikube setup instructions.
 ```bash
 kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl apply -f https://github.com/fluxcd/flux2/releases/latest/download/install.yaml
 
 ```
 ---
@@ -133,7 +132,7 @@ argocd repo add git@github.com:Elvis-Ngwesse/argoCD-mongodb.git \
 ```bash
 argocd app create test-app \
   --repo https://github.com/Elvis-Ngwesse/argoCD-mongodb.git \
-  --path k8s/overlays/test \
+  --path k8s/test \
   --revision HEAD \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace test-stage \
