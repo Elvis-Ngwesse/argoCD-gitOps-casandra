@@ -30,8 +30,8 @@ docker buildx create --use
 minio_version=$(git rev-parse --short HEAD)-$(date +%Y%m%d%H%M%S)
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t dockerelvis/argocd-app:latest \
-  -t dockerelvis/argocd-app:$minio_version \
+  -t dockerelvis/report-url-generator:latest \
+  -t dockerelvis/report-url-generator:$minio_version \
   -f docker2/Dockerfile \
   . \
   --push
@@ -55,8 +55,8 @@ docker buildx create --use
 argocd_version=$(git rev-parse --short HEAD)-$(date +%Y%m%d%H%M%S)
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t dockerelvis/argocd-app:latest \
-  -t dockerelvis/argocd-app:$argocd_version \
+  -t dockerelvis/customer-app:latest \
+  -t dockerelvis/customer-app:$argocd_version \
   -f docker/Dockerfile \
   . \
   --push

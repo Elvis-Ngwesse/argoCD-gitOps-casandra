@@ -244,7 +244,7 @@ spec:
     spec:
       containers:
         - name: customer-app
-          image: dockerelvis/customer-app:latest
+          image: dockerelvis/customer-app:447ddf1-20250629081357
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -263,7 +263,7 @@ spec:
     spec:
       containers:
         - name: report-url-api
-          image: dockerelvis/report-url-generator:latest
+          image: dockerelvis/report-url-generator:447ddf1-20250629081556
 ---
 
 # ---------------------------------------------------
