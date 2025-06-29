@@ -5,7 +5,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: customer-app
-  namespace: test
+  namespace: test-stage
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
@@ -57,7 +57,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: customer-app-service
-  namespace: test
+  namespace: test-stage
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
@@ -77,7 +77,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio-url-app
-  namespace: test
+  namespace: test-stage
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
@@ -141,7 +141,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: minio-url-app-service
-  namespace: test
+  namespace: test-stage
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:

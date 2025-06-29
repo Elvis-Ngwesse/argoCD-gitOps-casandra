@@ -11,7 +11,7 @@ spec:
     path: k8s/test
   destination:
     server: https://kubernetes.default.svc
-    namespace: test
+    namespace: test-stage
   syncPolicy:
     automated:
       prune: true
