@@ -144,7 +144,7 @@ argocd app create test-app \
   --path k8s/test \
   --revision HEAD \
   --dest-server https://kubernetes.default.svc \
-  --dest-namespace test-env \
+  --dest-namespace python-apps \
   --sync-policy automated \
   --self-heal \
   --auto-prune \

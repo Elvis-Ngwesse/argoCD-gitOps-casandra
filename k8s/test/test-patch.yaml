@@ -19,7 +19,14 @@ metadata:
   name: customer-app
   namespace: python-apps
 spec:
-  replicas: 2   # your desired new replica count
+  replicas: 2
+  selector:
+    matchLabels:
+      app: customer-app
+  template:
+    metadata:
+      labels:
+        app: customer-app
 
 ---
 apiVersion: v1
@@ -41,7 +48,14 @@ metadata:
   name: report-url-generator
   namespace: python-apps
 spec:
-  replicas: 2   # your desired new replica count
+  replicas: 2
+  selector:
+    matchLabels:
+      app: report-url-generator
+  template:
+    metadata:
+      labels:
+        app: report-url-generator
 
 ---
 apiVersion: v1
