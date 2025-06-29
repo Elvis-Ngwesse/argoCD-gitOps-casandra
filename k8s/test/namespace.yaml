@@ -1,0 +1,21 @@
+---
+# ---------------------------------------------------
+# 1. Namespace (logging)
+# ---------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logging
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+---
+
+# ---------------------------------------------------
+# 2. Namespace (test-stage)
+# ---------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-stage
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"

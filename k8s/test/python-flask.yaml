@@ -1,0 +1,156 @@
+# ---------------------------------------------------
+# Flask App Deployment
+# ---------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-app
+  namespace: test-stage
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: customer-app
+  template:
+    metadata:
+      labels:
+        app: customer-app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8001"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: customer-app
+          image: dockerelvis/customer-app:6101f79
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+            - containerPort: 8001
+          env:
+            - name: MONGO_URI
+              value: "mongodb://mongo-service:27017"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer-app-service
+  namespace: test-stage
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  type: NodePort
+  selector:
+    app: customer-app
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 31000
+
+
+---
+# ---------------------------------------------------
+# Flask MinIO Deployment
+# ---------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio-url-app
+  namespace: test-stage
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: minio-url-app
+  template:
+    metadata:
+      labels:
+        app: minio-url-app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: minio-url-app
+          image: dockerelvis/minio-url-app:6101f79
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5002
+            - containerPort: 8002
+          env:
+            - name: MINIO_ENDPOINT
+              value: "http://minio-service:9000"
+            - name: MINIO_BUCKET
+              value: "test-reports"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds
+                  key: accesskey
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-creds
+                  key: secretkey
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 5002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5002
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-url-app-service
+  namespace: test-stage
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  type: NodePort
+  selector:
+    app: minio-url-app
+  ports:
+    - port: 5002
+      targetPort: 5002
+      nodePort: 30502
+      protocol: TCP

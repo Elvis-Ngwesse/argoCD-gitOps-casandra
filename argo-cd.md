@@ -148,9 +148,8 @@ argocd app create test-app \
 ---
 ## ✅ Trigger First Sync
 ```bash
-argocd app get test-app1
-
-argocd app sync test-app1
+argocd app get test-app
+argocd app sync test-app
 ```
 ---
 
